@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>POE Farm Expense Calculator (Manual Flat)</title>
+    <title>POE Farm Expense Calculator</title>
     <style>
         body {
             background-color: #0b0c0e;
@@ -73,7 +73,16 @@
             font-size: 0.95em;
         }
 
-        input:focus {
+        /* Styling khusus input Readonly */
+        input[readonly] {
+            background-color: #12141a;
+            color: #af6025;
+            border-color: #2a2218;
+            font-weight: bold;
+            cursor: not-allowed;
+        }
+
+        input:focus:not([readonly]) {
             outline: none;
             border-color: #af6025;
             box-shadow: 0 0 5px rgba(175, 96, 37, 0.5);
@@ -129,8 +138,8 @@
 
     <!-- Header Kolom -->
     <div class="table-header">
-        <div class="col-name">Nama Item / Scarab</div>
-        <div class="col-qty">Qty (Catatan)</div>
+        <div class="col-name">Nama Item</div>
+        <div class="col-qty">Qty</div>
         <div class="col-price">Total Harga (Chaos)</div>
     </div>
 
@@ -147,15 +156,26 @@
 </div>
 
 <script>
+    // List item tetap untuk setiap slot
+    const fixedItems = [
+        "Scarab of Monstrous Lineage",
+        "Sacrifice of Dust",
+        "Sacrifice of Noon",
+        "Sacrifice of Midnight",
+        "Sacrifice of Dawn",
+        "MAP"
+    ];
+
     const container = document.getElementById('itemRows');
     
-    // Membuat 6 Baris Input
-    for (let i = 1; i <= 6; i++) {
+    // Render 6 Baris dengan Nama Fixed dan Readonly
+    fixedItems.forEach((itemName, index) => {
+        const i = index + 1;
         const row = document.createElement('div');
         row.className = 'row';
         row.innerHTML = `
             <div class="col-name">
-                <input type="text" id="name_${i}" placeholder="Slot ${i} (misal: Ambush Scarab)">
+                <input type="text" id="name_${i}" value="${itemName}" readonly>
             </div>
             <div class="col-qty">
                 <input type="number" id="qty_${i}" placeholder="Qty" min="0">
@@ -165,25 +185,23 @@
             </div>
         `;
         container.appendChild(row);
-    }
+    });
 
-    // Hanya menjumlahkan Total Harga dari masing-masing slot
+    // Menghitung Total Harga
     function hitungTotal() {
         let totalModal = 0;
 
-        for (let i = 1; i <= 6; i++) {
+        for (let i = 1; i <= fixedItems.length; i++) {
             const price = parseFloat(document.getElementById(`price_${i}`).value) || 0;
             totalModal += price;
         }
 
-        // Display Total Keseluruhan
         document.getElementById('grandTotal').innerText = `${totalModal.toLocaleString('id-ID')} Chaos`;
     }
 
-    // Fungsi Reset Input
+    // Reset hanya mengosongkan Qty dan Harga (Nama tetap ada)
     function resetForm() {
-        for (let i = 1; i <= 6; i++) {
-            document.getElementById(`name_${i}`).value = '';
+        for (let i = 1; i <= fixedItems.length; i++) {
             document.getElementById(`qty_${i}`).value = '';
             document.getElementById(`price_${i}`).value = '';
         }
