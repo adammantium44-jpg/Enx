@@ -304,7 +304,7 @@
         <button class="btn-reset" onclick="resetFarmForm()">Reset Farming Form</button>
     </div>
 
-    <!-- TAB 2: BELANJA EQUIPMENT (SEPARATE DIVINE & CHAOS) -->
+    <!-- TAB 2: BELANJA EQUIPMENT -->
     <div id="equipTab" class="tab-content">
         <div class="column-box" style="margin-bottom: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
@@ -315,7 +315,7 @@
             <table class="equip-table">
                 <thead>
                     <tr>
-                        <th style="width: 45%;">Nama Item (Arahkan Kursor)</th>
+                        <th style="width: 45%;">Nama Item Lengkap (Arahkan Kursor)</th>
                         <th style="width: 20%;">Divine (div)</th>
                         <th style="width: 20%;">Chaos (c)</th>
                         <th style="width: 15%; text-align: center;">Aksi</th>
@@ -343,8 +343,8 @@
 <div class="modal-overlay" id="itemModal">
     <div class="modal-box">
         <h3 style="color: #af6025;">Paste Text dari PoE Trade</h3>
-        <p style="font-size: 0.8em; color: #a38d6d; margin-top: -10px;">Paste mentah hasil copy item kamu. Nama & mata uang (Divine/Chaos) akan dibaca otomatis.</p>
-        <textarea id="rawItemInput" rows="10" placeholder="Paste data item di sini...&#10;&#10;Contoh:&#10;Item Class: Rings&#10;Rarity: Unique&#10;The Sundered Will&#10;...&#10;Note: ~b/o 7 divine"></textarea>
+        <p style="font-size: 0.8em; color: #a38d6d; margin-top: -10px;">Paste mentah hasil copy item kamu. Nama lengkap & mata uang (Divine/Chaos) akan dibaca otomatis.</p>
+        <textarea id="rawItemInput" rows="10" placeholder="Paste data item di sini...&#10;&#10;Contoh:&#10;Item Class: Rings&#10;Rarity: Unique&#10;The Sundered Will&#10;Fugitive Ring&#10;...&#10;Note: ~b/o 7 divine"></textarea>
         
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
             <button class="btn-reset" style="margin: 0; width: auto; background: #333;" onclick="closeModal()">Batal</button>
@@ -445,7 +445,7 @@
         hitungSemuaFarm();
     }
 
-    // --- TAB 2: EQUIPMENT LOGIC (NO CONVERSION BETWEEN DIV & CHAOS) ---
+    // --- TAB 2: EQUIPMENT LOGIC (FULL NAME EXTRACTION) ---
     let equipmentList = [];
 
     function openModal() {
@@ -461,17 +461,26 @@
         const text = document.getElementById('rawItemInput').value.trim();
         if (!text) return;
 
-        const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        // Ambil bagian Header (sebelum garis pemisah -------- pertama)
+        const headerBlock = text.split(/--------/)[0] || text;
+        const lines = headerBlock.split('\n').map(l => l.trim()).filter(l => l.length > 0);
         
-        let name = "Unknown Item";
-        if (lines.length >= 3) {
-            name = lines[2];
-        }
+        let nameLines = [];
+        lines.forEach(line => {
+            // Abaikan meta info bawaan poe trade
+            if (!line.startsWith("Item Class:") && !line.startsWith("Rarity:")) {
+                nameLines.push(line);
+            }
+        });
+
+        // Gabungkan seluruh baris nama (misal: "The Sundered Will" + "Fugitive Ring")
+        let fullName = nameLines.join(" ");
+        if (!fullName) fullName = "Unknown Item";
 
         let divinePrice = 0;
         let chaosPrice = 0;
 
-        // Parse harga otomatis tanpa konversi
+        // Parse harga dari note
         const priceMatch = text.match(/~b\/o\s+(\d+(?:\.\d+)?)\s+(chaos|divine)/i);
         if (priceMatch) {
             const amount = parseFloat(priceMatch[1]);
@@ -485,7 +494,7 @@
 
         const newItem = {
             id: Date.now(),
-            name: name,
+            name: fullName,
             divine: divinePrice,
             chaos: chaosPrice,
             fullStats: text
