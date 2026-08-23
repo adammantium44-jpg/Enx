@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>POE Farm Expense Calculator (Manual)</title>
+    <title>POE Farm Expense Calculator (Manual Flat)</title>
     <style>
         body {
             background-color: #0b0c0e;
@@ -59,9 +59,8 @@
         }
 
         .col-name { flex: 2; }
-        .col-qty { flex: 1; }
-        .col-price { flex: 1; }
-        .col-total { flex: 1; text-align: right; }
+        .col-qty { flex: 0.8; }
+        .col-price { flex: 1.2; }
 
         input {
             width: 100%;
@@ -78,12 +77,6 @@
             outline: none;
             border-color: #af6025;
             box-shadow: 0 0 5px rgba(175, 96, 37, 0.5);
-        }
-
-        .item-subtotal {
-            color: #e5b158;
-            font-weight: bold;
-            font-size: 0.95em;
         }
 
         .summary-box {
@@ -137,9 +130,8 @@
     <!-- Header Kolom -->
     <div class="table-header">
         <div class="col-name">Nama Item / Scarab</div>
-        <div class="col-qty">Jumlah (Qty)</div>
-        <div class="col-price">Harga (@ Chaos)</div>
-        <div class="col-total">Subtotal</div>
+        <div class="col-qty">Qty (Catatan)</div>
+        <div class="col-price">Total Harga (Chaos)</div>
     </div>
 
     <!-- Container 6 Baris Input -->
@@ -155,9 +147,9 @@
 </div>
 
 <script>
-    // Membuat 6 Baris Input Secara Otomatis
     const container = document.getElementById('itemRows');
     
+    // Membuat 6 Baris Input
     for (let i = 1; i <= 6; i++) {
         const row = document.createElement('div');
         row.className = 'row';
@@ -166,43 +158,34 @@
                 <input type="text" id="name_${i}" placeholder="Slot ${i} (misal: Ambush Scarab)">
             </div>
             <div class="col-qty">
-                <input type="number" id="qty_${i}" value="0" min="0" oninput="hitungTotal()">
+                <input type="number" id="qty_${i}" placeholder="Qty" min="0">
             </div>
             <div class="col-price">
-                <input type="number" id="price_${i}" value="0" min="0" step="any" oninput="hitungTotal()">
-            </div>
-            <div class="col-total">
-                <span class="item-subtotal" id="subtotal_${i}">0 c</span>
+                <input type="number" id="price_${i}" placeholder="0 c" min="0" step="any" oninput="hitungTotal()">
             </div>
         `;
         container.appendChild(row);
     }
 
-    // Fungsi Kalkulasi Real-Time
+    // Hanya menjumlahkan Total Harga dari masing-masing slot
     function hitungTotal() {
         let totalModal = 0;
 
         for (let i = 1; i <= 6; i++) {
-            const qty = parseFloat(document.getElementById(`qty_${i}`).value) || 0;
             const price = parseFloat(document.getElementById(`price_${i}`).value) || 0;
-            
-            const subtotal = qty * price;
-            totalModal += subtotal;
-
-            // Format angka subtotal per baris
-            document.getElementById(`subtotal_${i}`).innerText = `${subtotal.toLocaleString('id-ID')} c`;
+            totalModal += price;
         }
 
-        // Update Total Keseluruhan
+        // Display Total Keseluruhan
         document.getElementById('grandTotal').innerText = `${totalModal.toLocaleString('id-ID')} Chaos`;
     }
 
-    // Fungsi Reset
+    // Fungsi Reset Input
     function resetForm() {
         for (let i = 1; i <= 6; i++) {
             document.getElementById(`name_${i}`).value = '';
-            document.getElementById(`qty_${i}`).value = '0';
-            document.getElementById(`price_${i}`).value = '0';
+            document.getElementById(`qty_${i}`).value = '';
+            document.getElementById(`price_${i}`).value = '';
         }
         hitungTotal();
     }
