@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>POE Farm Expense Calculator</title>
+    <title>POE Auto-Price Farm Calculator</title>
     <style>
         body {
             background-color: #0b0c0e;
             color: #c8c8c8;
-            font-family: 'Fontin', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -23,7 +23,7 @@
             border-radius: 8px;
             box-shadow: 0 0 25px rgba(0, 0, 0, 0.9);
             width: 100%;
-            max-width: 650px;
+            max-width: 700px;
             padding: 25px;
             box-sizing: border-box;
         }
@@ -32,12 +32,16 @@
             color: #af6025;
             text-align: center;
             margin-top: 0;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             text-shadow: 0 0 8px rgba(175, 96, 37, 0.4);
-            border-bottom: 1px solid #332619;
-            padding-bottom: 12px;
             text-transform: uppercase;
-            letter-spacing: 1px;
+        }
+
+        .status-bar {
+            text-align: center;
+            font-size: 0.85em;
+            color: #1e90ff;
+            margin-bottom: 20px;
         }
 
         .table-header {
@@ -58,12 +62,12 @@
             align-items: center;
         }
 
-        .col-name { flex: 2; }
+        .col-name { flex: 2.5; }
         .col-qty { flex: 1; }
-        .col-price { flex: 1; }
+        .col-price { flex: 1.2; }
         .col-total { flex: 1; text-align: right; }
 
-        input {
+        input, select {
             width: 100%;
             padding: 8px 10px;
             background-color: #0b0c0e;
@@ -71,19 +75,17 @@
             color: #e0e0e0;
             border-radius: 4px;
             box-sizing: border-box;
-            font-size: 0.95em;
+            font-size: 0.9em;
         }
 
-        input:focus {
+        input:focus, select:focus {
             outline: none;
             border-color: #af6025;
-            box-shadow: 0 0 5px rgba(175, 96, 37, 0.5);
         }
 
         .item-subtotal {
             color: #e5b158;
             font-weight: bold;
-            font-size: 0.95em;
         }
 
         .summary-box {
@@ -97,76 +99,89 @@
             align-items: center;
         }
 
-        .summary-title {
-            color: #a38d6d;
-            font-size: 1.1em;
-            font-weight: bold;
-        }
-
         .total-expense {
             color: #ff4d4d;
             font-size: 1.4em;
             font-weight: bold;
-            text-shadow: 0 0 5px rgba(255, 77, 77, 0.3);
-        }
-
-        .btn-reset {
-            margin-top: 15px;
-            width: 100%;
-            padding: 10px;
-            background: linear-gradient(to bottom, #4a210d, #2d1408);
-            border: 1px solid #7e3e1b;
-            color: #a38d6d;
-            font-weight: bold;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-reset:hover {
-            background: linear-gradient(to bottom, #7e3e1b, #4a210d);
-            color: #fff;
         }
     </style>
 </head>
 <body>
 
 <div class="calculator-card">
-    <h2>Catatan Modal Farming</h2>
+    <h2>Catatan Modal Farming (Live Market)</h2>
+    <div class="status-bar" id="statusBar">🌐 Mengambil data harga dari POE Ninja Market...</div>
 
-    <!-- Header Kolom -->
     <div class="table-header">
-        <div class="col-name">Nama Item / Scarab</div>
+        <div class="col-name">Pilih Scarab / Item</div>
         <div class="col-qty">Qty</div>
-        <div class="col-price">Harga (@ c)</div>
+        <div class="col-price">Harga Market (@ c)</div>
         <div class="col-total">Subtotal</div>
     </div>
 
-    <!-- Container 6 Baris Input -->
     <div id="itemRows"></div>
 
-    <!-- Ringkasan Total Modal -->
     <div class="summary-box">
-        <span class="summary-title">TOTAL MODAL DIKELUARKAN:</span>
+        <span style="color: #a38d6d; font-weight: bold;">TOTAL MODAL:</span>
         <span class="total-expense" id="grandTotal">0 Chaos</span>
     </div>
-
-    <button class="btn-reset" onclick="resetForm()">Reset Semua Input</button>
 </div>
 
 <script>
-    // Membuat 6 Baris Input secara Otomatis
+    // Daftar Pilihan Item Default
+    const defaultItems = [
+        "Harvest Scarab",
+        "Harvest Scarab of Doubling",
+        "Harvest Scarab of Cornucopia",
+        "Harvest Scarab of Risk",
+        "Monstrous Lineage Scarab",
+        "Ambush Scarab",
+        "Ambush Scarab of Discernment",
+        "Divination Scarab",
+        "Awakened Sextant",
+        "Charged Compass"
+    ];
+
+    let marketPrices = {};
+
+    // 1. Ambil Harga Otomatis dari POE Ninja API via Proxy
+    async function fetchMarketPrices() {
+        const statusBar = document.getElementById('statusBar');
+        try {
+            // Menggunakan CORS Proxy agar bisa diakses langsung dari GitHub Pages
+            const response = await fetch('https://corsproxy.io/?https://poe.ninja/api/data/itemoverview?league=Settlers&type=Scarab');
+            const data = await response.json();
+
+            // Simpan harga ke objek
+            data.lines.forEach(item => {
+                marketPrices[item.name] = item.chaosValue;
+            });
+
+            statusBar.innerText = "✅ Harga Market Berhasil Diperbarui dari POE Ninja!";
+            statusBar.style.color = "#00ff7f";
+
+            // Setel ulang harga di dropdown
+            updateAllPrices();
+        } catch (error) {
+            statusBar.innerText = "⚠️ Gagal mengambil API. Silakan isi harga manual.";
+            statusBar.style.color = "#ff4d4d";
+        }
+    }
+
+    // 2. Buat 6 Baris Input
     const container = document.getElementById('itemRows');
-    
     for (let i = 1; i <= 6; i++) {
         const row = document.createElement('div');
         row.className = 'row';
         row.innerHTML = `
             <div class="col-name">
-                <input type="text" id="name_${i}" placeholder="Slot ${i} (opsional)">
+                <select id="select_${i}" onchange="onItemSelect(${i})">
+                    <option value="">-- Pilih Item --</option>
+                    ${defaultItems.map(item => `<option value="${item}">${item}</option>`).join('')}
+                </select>
             </div>
             <div class="col-qty">
-                <input type="number" id="qty_${i}" value="0" min="0" oninput="hitungTotal()">
+                <input type="number" id="qty_${i}" value="1" min="0" oninput="hitungTotal()">
             </div>
             <div class="col-price">
                 <input type="number" id="price_${i}" value="0" min="0" step="any" oninput="hitungTotal()">
@@ -178,34 +193,41 @@
         container.appendChild(row);
     }
 
-    // Fungsi Kalkulasi Real-time
-    function hitungTotal() {
-        let totalModal = 0;
+    // 3. Update Harga saat Item Dipilih
+    function onItemSelect(rowIndex) {
+        const selectedName = document.getElementById(`select_${rowIndex}`).value;
+        const priceInput = document.getElementById(`price_${rowIndex}`);
 
-        for (let i = 1; i <= 6; i++) {
-            const qty = parseFloat(document.getElementById(`qty_${i}`).value) || 0;
-            const price = parseFloat(document.getElementById(`price_${i}`).value) || 0;
-            
-            const subtotal = qty * price;
-            totalModal += subtotal;
-
-            // Update Teks Subtotal per Baris
-            document.getElementById(`subtotal_${i}`).innerText = `${subtotal.toLocaleString('id-ID')} c`;
-        }
-
-        // Update Total Modal Keseluruhan
-        document.getElementById('grandTotal').innerText = `${totalModal.toLocaleString('id-ID')} Chaos`;
-    }
-
-    // Fungsi Reset
-    function resetForm() {
-        for (let i = 1; i <= 6; i++) {
-            document.getElementById(`name_${i}`).value = '';
-            document.getElementById(`qty_${i}`).value = '0';
-            document.getElementById(`price_${i}`).value = '0';
+        if (marketPrices[selectedName]) {
+            priceInput.value = marketPrices[selectedName];
+        } else {
+            priceInput.value = 0;
         }
         hitungTotal();
     }
+
+    function updateAllPrices() {
+        for (let i = 1; i <= 6; i++) {
+            onItemSelect(i);
+        }
+    }
+
+    // 4. Hitung Total Modal
+    function hitungTotal() {
+        let grandTotal = 0;
+        for (let i = 1; i <= 6; i++) {
+            const qty = parseFloat(document.getElementById(`qty_${i}`).value) || 0;
+            const price = parseFloat(document.getElementById(`price_${i}`).value) || 0;
+            const subtotal = qty * price;
+            
+            grandTotal += subtotal;
+            document.getElementById(`subtotal_${i}`).innerText = `${subtotal.toFixed(1)} c`;
+        }
+        document.getElementById('grandTotal').innerText = `${grandTotal.toFixed(1)} Chaos`;
+    }
+
+    // Jalankan Fetch saat Halaman Dimuat
+    fetchMarketPrices();
 </script>
 
 </body>
