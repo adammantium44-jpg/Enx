@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>POE Harvest Profit Calculator</title>
+    <title>POE Helper Tool</title>
     <style>
         body {
             background-color: #0b0c0e;
@@ -41,7 +41,48 @@
             padding-bottom: 12px;
         }
 
-        /* Container Layout Kiri & Kanan */
+        /* --- STYLING TAB NAVIGATION --- */
+        .tab-menu {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #332619;
+        }
+
+        .tab-btn {
+            background-color: #12141a;
+            color: #a38d6d;
+            border: 1px solid #3d3122;
+            border-bottom: none;
+            padding: 10px 20px;
+            font-size: 0.95em;
+            font-weight: bold;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn:hover {
+            background-color: #242832;
+            color: #fff;
+        }
+
+        .tab-btn.active {
+            background-color: #af6025;
+            color: #fff;
+            border-color: #af6025;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Layout Grid Farming */
         .grid-container {
             display: flex;
             gap: 25px;
@@ -122,7 +163,7 @@
         .vivid { color: #ffd700 !important; }
         .primal { color: #00e5ff !important; }
 
-        /* Banner Ringkasan Bawah */
+        /* Banner Summary */
         .summary-container {
             background-color: #0b0c0e;
             border: 1px solid #3d3122;
@@ -204,80 +245,110 @@
             color: #fff;
         }
 
-        /* Responsif saat dibuka di layar HP */
+        /* Responsive Layout */
         @media (max-width: 850px) {
-            .grid-container {
-                flex-direction: column;
-            }
-            .summary-divider-v {
-                display: none;
-            }
-            .summary-container {
-                flex-direction: column;
-            }
+            .grid-container { flex-direction: column; }
+            .summary-divider-v { display: none; }
+            .summary-container { flex-direction: column; }
         }
     </style>
 </head>
 <body>
 
 <div class="calculator-card">
-    <h2>Catatan Harvest Farming</h2>
+    <h2>POE Helper Tool</h2>
 
-    <!-- Grid Layout Kiri & Kanan -->
-    <div class="grid-container">
-        
-        <!-- KOLOM KIRI: MODAL -->
-        <div class="column-box">
-            <h3 class="expense-title">💸 Modal Dikeluarkan</h3>
-            <div class="table-header">
-                <div class="col-name">Nama Item</div>
-                <div class="col-qty">Qty</div>
-                <div class="col-price">Total (Chaos)</div>
-            </div>
-            <div id="itemRows"></div>
-        </div>
-
-        <!-- KOLOM KANAN: HASIL FARM -->
-        <div class="column-box">
-            <h3 class="income-title">🌾 Hasil Farm (Lifeforce)</h3>
-            <div class="table-header">
-                <div class="col-name">Tipe Lifeforce</div>
-                <div class="col-qty">Qty LF</div>
-                <div class="col-ratio">Rasio (1c:LF)</div>
-                <div class="col-price">Hasil (Chaos)</div>
-            </div>
-            <div id="lifeforceRows"></div>
-        </div>
-
+    <!-- Menu Tab Navigasi -->
+    <div class="tab-menu">
+        <button class="tab-btn active" id="btn_farmTab" onclick="switchTab('farmTab', this)">🌾 Harvest Farming</button>
+        <button class="tab-btn" id="btn_equipTab" onclick="switchTab('equipTab', this)">⚔️ Belanja Equipment</button>
     </div>
 
-    <!-- Banner Summary Bawah -->
-    <div class="summary-container">
-        <div class="summary-item">
-            <span class="summary-title">Total Modal</span>
-            <span class="val-expense" id="totalExpense">0 Chaos</span>
+    <!-- TAB 1: HARVEST FARMING -->
+    <div id="farmTab" class="tab-content active">
+        <div class="grid-container">
+            <!-- KOLOM KIRI: MODAL -->
+            <div class="column-box">
+                <h3 class="expense-title">💸 Modal Dikeluarkan</h3>
+                <div class="table-header">
+                    <div class="col-name">Nama Item</div>
+                    <div class="col-qty">Qty</div>
+                    <div class="col-price">Total (Chaos)</div>
+                </div>
+                <div id="itemRows"></div>
+            </div>
+
+            <!-- KOLOM KANAN: HASIL FARM -->
+            <div class="column-box">
+                <h3 class="income-title">🌾 Hasil Farm (Lifeforce)</h3>
+                <div class="table-header">
+                    <div class="col-name">Tipe Lifeforce</div>
+                    <div class="col-qty">Qty LF</div>
+                    <div class="col-ratio">Rasio (1c:LF)</div>
+                    <div class="col-price">Hasil (Chaos)</div>
+                </div>
+                <div id="lifeforceRows"></div>
+            </div>
         </div>
 
-        <div class="summary-divider-v"></div>
-
-        <div class="summary-item">
-            <span class="summary-title">Total Hasil Farm</span>
-            <span class="val-income" id="totalIncome">0 Chaos</span>
+        <div class="summary-container">
+            <div class="summary-item">
+                <span class="summary-title">Total Modal</span>
+                <span class="val-expense" id="totalExpense">0 Chaos</span>
+            </div>
+            <div class="summary-divider-v"></div>
+            <div class="summary-item">
+                <span class="summary-title">Total Hasil Farm</span>
+                <span class="val-income" id="totalIncome">0 Chaos</span>
+            </div>
+            <div class="summary-divider-v"></div>
+            <div class="summary-item">
+                <span class="profit-title">Laba / Profit Bersih</span>
+                <span class="val-profit" id="netProfit">0 Chaos</span>
+            </div>
         </div>
 
-        <div class="summary-divider-v"></div>
-
-        <div class="summary-item">
-            <span class="profit-title">Laba / Profit Bersih</span>
-            <span class="val-profit" id="netProfit">0 Chaos</span>
-        </div>
+        <button class="btn-reset" onclick="resetFarmForm()">Reset Farming Form</button>
     </div>
 
-    <button class="btn-reset" onclick="resetForm()">Reset Semua Input</button>
+    <!-- TAB 2: BELANJA EQUIPMENT -->
+    <div id="equipTab" class="tab-content">
+        <div class="column-box" style="margin-bottom: 20px;">
+            <h3 style="color: #3498db;">🛡️ Daftar Rencana Belanja Gear / Item</h3>
+            <div class="table-header">
+                <div style="flex: 0.3;">Slot</div>
+                <div style="flex: 2;">Nama Item / Equipment</div>
+                <div style="flex: 1;">Harga Estimasi (Chaos)</div>
+            </div>
+            <div id="equipRows"></div>
+        </div>
+
+        <div class="summary-container">
+            <div class="summary-item">
+                <span class="summary-title">Total Budget / Biaya Equipment</span>
+                <span class="val-expense" id="totalEquipCost" style="font-size: 1.5em;">0 Chaos</span>
+            </div>
+        </div>
+
+        <button class="btn-reset" onclick="resetEquipForm()">Reset Equipment Form</button>
+    </div>
+
 </div>
 
 <script>
-    // Item Modal (Sisi Kiri)
+    // --- NAVIGASI TAB ---
+    function switchTab(tabId, btnElement) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        
+        document.getElementById(tabId).classList.add('active');
+        btnElement.classList.add('active');
+
+        // Simpan posisi tab aktif ke local storage
+        localStorage.setItem('activeTab', tabId);
+    }
+
+    // --- TAB 1: LOGIC HARVEST FARMING ---
     const fixedItems = [
         "Scarab of Monstrous Lineage",
         "Sacrifice of Dust",
@@ -287,7 +358,6 @@
         "MAP"
     ];
 
-    // Item Lifeforce (Sisi Kanan)
     const lifeforceItems = [
         { name: "Wild Lifeforce", class: "wild" },
         { name: "Vivid Lifeforce", class: "vivid" },
@@ -298,90 +368,65 @@
     const container = document.getElementById('itemRows');
     const lfContainer = document.getElementById('lifeforceRows');
 
-    // 1. Render Slot Modal (Kolom Kiri)
+    // Render Slot Modal
     fixedItems.forEach((itemName, index) => {
         const i = index + 1;
         const row = document.createElement('div');
         row.className = 'row';
         row.innerHTML = `
-            <div class="col-name">
-                <input type="text" id="name_${i}" value="${itemName}" readonly>
-            </div>
-            <div class="col-qty">
-                <input type="number" id="qty_${i}" placeholder="Qty" min="0">
-            </div>
-            <div class="col-price">
-                <input type="number" id="price_${i}" placeholder="0 c" min="0" step="any" oninput="hitungSemua()">
-            </div>
+            <div class="col-name"><input type="text" id="name_${i}" value="${itemName}" readonly></div>
+            <div class="col-qty"><input type="number" id="qty_${i}" placeholder="Qty" min="0" oninput="saveData('qty_${i}')"></div>
+            <div class="col-price"><input type="number" id="price_${i}" placeholder="0 c" min="0" step="any" oninput="hitungSemuaFarm(); saveData('price_${i}')"></div>
         `;
         container.appendChild(row);
     });
 
-    // 2. Render Slot Hasil Lifeforce (Kolom Kanan)
+    // Render Slot Lifeforce
     lifeforceItems.forEach((lf, index) => {
         const i = index + 1;
         const row = document.createElement('div');
         row.className = 'row';
         row.innerHTML = `
-            <div class="col-name">
-                <input type="text" value="${lf.name}" class="${lf.class}" readonly>
-            </div>
-            <div class="col-qty">
-                <input type="number" id="lf_qty_${i}" placeholder="Qty" min="0" oninput="hitungLifeforce(${i})">
-            </div>
-            <div class="col-ratio">
-                <input type="number" id="lf_ratio_${i}" placeholder="Rasio" min="0" step="any" oninput="hitungLifeforce(${i})">
-            </div>
-            <div class="col-price">
-                <input type="number" id="lf_price_${i}" placeholder="0 c" min="0" step="any" oninput="hitungSemua()">
-            </div>
+            <div class="col-name"><input type="text" value="${lf.name}" class="${lf.class}" readonly></div>
+            <div class="col-qty"><input type="number" id="lf_qty_${i}" placeholder="Qty" min="0" oninput="hitungLifeforce(${i}); saveData('lf_qty_${i}')"></div>
+            <div class="col-ratio"><input type="number" id="lf_ratio_${i}" placeholder="Rasio" min="0" step="any" oninput="hitungLifeforce(${i}); saveData('lf_ratio_${i}')"></div>
+            <div class="col-price"><input type="number" id="lf_price_${i}" placeholder="0 c" min="0" step="any" oninput="hitungSemuaFarm(); saveData('lf_price_${i}')"></div>
         `;
         lfContainer.appendChild(row);
     });
 
-    // Kalkulasi Hasil Lifeforce
     function hitungLifeforce(index) {
         const qty = parseFloat(document.getElementById(`lf_qty_${index}`).value) || 0;
         const ratio = parseFloat(document.getElementById(`lf_ratio_${index}`).value) || 0;
         const priceInput = document.getElementById(`lf_price_${index}`);
 
         if (ratio > 0 && qty > 0) {
-            const resultChaos = qty / ratio;
-            priceInput.value = resultChaos.toFixed(2);
+            priceInput.value = (qty / ratio).toFixed(2);
         } else {
             priceInput.value = '';
         }
-        hitungSemua();
+        saveData(`lf_price_${index}`);
+        hitungSemuaFarm();
     }
 
-    // Hitung Total Modal, Total Hasil, dan Profit
-    function hitungSemua() {
-        let modal = 0;
-        let hasil = 0;
+    function hitungSemuaFarm() {
+        let modal = 0, hasil = 0;
 
-        // Hitung Modal
         for (let i = 1; i <= fixedItems.length; i++) {
-            const price = parseFloat(document.getElementById(`price_${i}`).value) || 0;
-            modal += price;
+            modal += parseFloat(document.getElementById(`price_${i}`).value) || 0;
         }
-
-        // Hitung Hasil Lifeforce
         for (let i = 1; i <= lifeforceItems.length; i++) {
-            const lfPrice = parseFloat(document.getElementById(`lf_price_${i}`).value) || 0;
-            hasil += lfPrice;
+            hasil += parseFloat(document.getElementById(`lf_price_${i}`).value) || 0;
         }
 
-        // Hitung Profit Bersih
         const profit = hasil - modal;
 
-        // Display
-        document.getElementById('totalExpense').innerText = `${modal.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} Chaos`;
-        document.getElementById('totalIncome').innerText = `${hasil.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} Chaos`;
+        document.getElementById('totalExpense').innerText = `${modal.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Chaos`;
+        document.getElementById('totalIncome').innerText = `${hasil.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Chaos`;
 
         const profitElem = document.getElementById('netProfit');
-        profitElem.innerText = `${profit.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} Chaos`;
+        profitElem.innerText = `${profit.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Chaos`;
 
-        // Ubah warna text jika rugi
         if (profit < 0) {
             profitElem.classList.add('val-loss');
         } else {
@@ -389,19 +434,102 @@
         }
     }
 
-    // Reset Form
-    function resetForm() {
+    function resetFarmForm() {
         for (let i = 1; i <= fixedItems.length; i++) {
             document.getElementById(`qty_${i}`).value = '';
             document.getElementById(`price_${i}`).value = '';
+            removeData(`qty_${i}`);
+            removeData(`price_${i}`);
         }
         for (let i = 1; i <= lifeforceItems.length; i++) {
             document.getElementById(`lf_qty_${i}`).value = '';
             document.getElementById(`lf_ratio_${i}`).value = '';
             document.getElementById(`lf_price_${i}`).value = '';
+            removeData(`lf_qty_${i}`);
+            removeData(`lf_ratio_${i}`);
+            removeData(`lf_price_${i}`);
         }
-        hitungSemua();
+        hitungSemuaFarm();
     }
+
+    // --- TAB 2: LOGIC BELANJA EQUIPMENT ---
+    const equipSlots = ["Weapon", "Offhand / Shield", "Helmet", "Body Armour", "Gloves", "Boots", "Amulet", "Ring 1", "Ring 2", "Belt", "Jewel 1", "Jewel 2"];
+    const equipContainer = document.getElementById('equipRows');
+
+    equipSlots.forEach((slotName, index) => {
+        const i = index + 1;
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.innerHTML = `
+            <div style="flex: 0.3; font-weight: bold; color: #a38d6d; text-align: center;">${i}</div>
+            <div style="flex: 2;"><input type="text" id="eq_name_${i}" placeholder="Nama ${slotName}" oninput="saveData('eq_name_${i}')"></div>
+            <div style="flex: 1;"><input type="number" id="eq_price_${i}" placeholder="0 c" min="0" step="any" oninput="hitungTotalEquip(); saveData('eq_price_${i}')"></div>
+        `;
+        equipContainer.appendChild(row);
+    });
+
+    function hitungTotalEquip() {
+        let total = 0;
+        for (let i = 1; i <= equipSlots.length; i++) {
+            total += parseFloat(document.getElementById(`eq_price_${i}`).value) || 0;
+        }
+        document.getElementById('totalEquipCost').innerText = `${total.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Chaos`;
+    }
+
+    function resetEquipForm() {
+        for (let i = 1; i <= equipSlots.length; i++) {
+            document.getElementById(`eq_name_${i}`).value = '';
+            document.getElementById(`eq_price_${i}`).value = '';
+            removeData(`eq_name_${i}`);
+            removeData(`eq_price_${i}`);
+        }
+        hitungTotalEquip();
+    }
+
+    // --- LOGIC LOCAL STORAGE (PENYIMPANAN OTOMATIS) ---
+    function saveData(id) {
+        const val = document.getElementById(id).value;
+        localStorage.setItem(id, val);
+    }
+
+    function removeData(id) {
+        localStorage.removeItem(id);
+    }
+
+    function loadData() {
+        // Restore tab aktif
+        const activeTab = localStorage.getItem('activeTab');
+        if (activeTab) {
+            const btn = document.getElementById(`btn_${activeTab}`);
+            if (btn) switchTab(activeTab, btn);
+        }
+
+        // Restore nilai input Farming Modal
+        for (let i = 1; i <= fixedItems.length; i++) {
+            if (localStorage.getItem(`qty_${i}`)) document.getElementById(`qty_${i}`).value = localStorage.getItem(`qty_${i}`);
+            if (localStorage.getItem(`price_${i}`)) document.getElementById(`price_${i}`).value = localStorage.getItem(`price_${i}`);
+        }
+
+        // Restore nilai input Lifeforce
+        for (let i = 1; i <= lifeforceItems.length; i++) {
+            if (localStorage.getItem(`lf_qty_${i}`)) document.getElementById(`lf_qty_${i}`).value = localStorage.getItem(`lf_qty_${i}`);
+            if (localStorage.getItem(`lf_ratio_${i}`)) document.getElementById(`lf_ratio_${i}`).value = localStorage.getItem(`lf_ratio_${i}`);
+            if (localStorage.getItem(`lf_price_${i}`)) document.getElementById(`lf_price_${i}`).value = localStorage.getItem(`lf_price_${i}`);
+        }
+
+        // Restore nilai input Equipment
+        for (let i = 1; i <= equipSlots.length; i++) {
+            if (localStorage.getItem(`eq_name_${i}`)) document.getElementById(`eq_name_${i}`).value = localStorage.getItem(`eq_name_${i}`);
+            if (localStorage.getItem(`eq_price_${i}`)) document.getElementById(`eq_price_${i}`).value = localStorage.getItem(`eq_price_${i}`);
+        }
+
+        // Jalankan ulang hitungan
+        hitungSemuaFarm();
+        hitungTotalEquip();
+    }
+
+    // Jalankan pemuatan data saat halaman pertama kali dibuka
+    window.onload = loadData;
 </script>
 
 </body>
