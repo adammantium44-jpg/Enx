@@ -177,7 +177,6 @@
         .equip-table th { background-color: #0b0c0e; color: #a38d6d; font-size: 0.9em; }
         .equip-table tr:nth-child(even) { background-color: #0f1014; }
 
-        /* Item Hover Visual */
         .item-hover-name {
             color: #af6025;
             font-weight: bold;
@@ -188,7 +187,6 @@
 
         .item-hover-name:hover { text-decoration: underline; }
 
-        /* Custom Tooltip Styling */
         .poe-tooltip {
             visibility: hidden;
             width: 320px;
@@ -224,7 +222,6 @@
 
         .btn-delete:hover { background-color: #e74c3c; }
 
-        /* --- MODAL POPUP --- */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -257,7 +254,6 @@
 <div class="calculator-card">
     <h2>POE Helper Tool</h2>
 
-    <!-- Menu Tab Navigasi -->
     <div class="tab-menu">
         <button class="tab-btn active" id="btn_farmTab" onclick="switchTab('farmTab', this)">🌾 Harvest Farming</button>
         <button class="tab-btn" id="btn_equipTab" onclick="switchTab('equipTab', this)">⚔️ Belanja Equipment</button>
@@ -308,7 +304,7 @@
         <button class="btn-reset" onclick="resetFarmForm()">Reset Farming Form</button>
     </div>
 
-    <!-- TAB 2: BELANJA EQUIPMENT (TABLE + MODAL) -->
+    <!-- TAB 2: BELANJA EQUIPMENT (SEPARATE DIVINE & CHAOS) -->
     <div id="equipTab" class="tab-content">
         <div class="column-box" style="margin-bottom: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
@@ -319,8 +315,9 @@
             <table class="equip-table">
                 <thead>
                     <tr>
-                        <th style="width: 50%;">Nama Item (Arahkan Kursor)</th>
-                        <th style="width: 35%;">Harga (Chaos)</th>
+                        <th style="width: 45%;">Nama Item (Arahkan Kursor)</th>
+                        <th style="width: 20%;">Divine (div)</th>
+                        <th style="width: 20%;">Chaos (c)</th>
                         <th style="width: 15%; text-align: center;">Aksi</th>
                     </tr>
                 </thead>
@@ -332,8 +329,8 @@
 
         <div class="summary-container">
             <div class="summary-item">
-                <span class="summary-title">Total Budget / Biaya Equipment</span>
-                <span class="val-expense" id="totalEquipCost" style="font-size: 1.5em;">0 Chaos</span>
+                <span class="summary-title">Total Biaya Equipment</span>
+                <span class="val-expense" id="totalEquipCost" style="font-size: 1.4em;">0 Div | 0 Chaos</span>
             </div>
         </div>
 
@@ -346,7 +343,7 @@
 <div class="modal-overlay" id="itemModal">
     <div class="modal-box">
         <h3 style="color: #af6025;">Paste Text dari PoE Trade</h3>
-        <p style="font-size: 0.8em; color: #a38d6d; margin-top: -10px;">Paste mentah hasil copy item kamu. Nama & harga (`~b/o X chaos/divine`) akan dibaca otomatis.</p>
+        <p style="font-size: 0.8em; color: #a38d6d; margin-top: -10px;">Paste mentah hasil copy item kamu. Nama & mata uang (Divine/Chaos) akan dibaca otomatis.</p>
         <textarea id="rawItemInput" rows="10" placeholder="Paste data item di sini...&#10;&#10;Contoh:&#10;Item Class: Rings&#10;Rarity: Unique&#10;The Sundered Will&#10;...&#10;Note: ~b/o 7 divine"></textarea>
         
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
@@ -448,7 +445,7 @@
         hitungSemuaFarm();
     }
 
-    // --- TAB 2: EQUIPMENT LOGIC (WITH MODAL & AUTO PARSER) ---
+    // --- TAB 2: EQUIPMENT LOGIC (NO CONVERSION BETWEEN DIV & CHAOS) ---
     let equipmentList = [];
 
     function openModal() {
@@ -466,31 +463,31 @@
 
         const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
         
-        // 1. Ambil Nama Item
         let name = "Unknown Item";
         if (lines.length >= 3) {
-            name = lines[2]; // Biasanya baris ke-3 adalah nama unik/item
+            name = lines[2];
         }
 
-        // 2. Parse Harga otomatis dari string Note / harga trade (Misal: ~b/o 7 divine atau ~b/o 100 chaos)
-        let estimatedPriceChaos = 0;
+        let divinePrice = 0;
+        let chaosPrice = 0;
+
+        // Parse harga otomatis tanpa konversi
         const priceMatch = text.match(/~b\/o\s+(\d+(?:\.\d+)?)\s+(chaos|divine)/i);
-        
         if (priceMatch) {
             const amount = parseFloat(priceMatch[1]);
             const currency = priceMatch[2].toLowerCase();
             if (currency === 'divine') {
-                // Estimasi rasio default 1 Divine = 150 Chaos (opsional disesuaikan)
-                estimatedPriceChaos = amount * 150; 
-            } else {
-                estimatedPriceChaos = amount;
+                divinePrice = amount;
+            } else if (currency === 'chaos') {
+                chaosPrice = amount;
             }
         }
 
         const newItem = {
             id: Date.now(),
             name: name,
-            price: estimatedPriceChaos,
+            divine: divinePrice,
+            chaos: chaosPrice,
             fullStats: text
         };
 
@@ -506,10 +503,10 @@
         renderEquipTable();
     }
 
-    function updateEquipPrice(id, newPrice) {
+    function updateEquipValue(id, type, val) {
         const item = equipmentList.find(i => i.id === id);
         if (item) {
-            item.price = parseFloat(newPrice) || 0;
+            item[type] = parseFloat(val) || 0;
             saveEquipData();
             hitungTotalEquip();
         }
@@ -529,7 +526,10 @@
                     </div>
                 </td>
                 <td>
-                    <input type="number" value="${item.price}" placeholder="0 c" step="any" oninput="updateEquipPrice(${item.id}, this.value)">
+                    <input type="number" value="${item.divine || ''}" placeholder="0 div" step="any" oninput="updateEquipValue(${item.id}, 'divine', this.value)">
+                </td>
+                <td>
+                    <input type="number" value="${item.chaos || ''}" placeholder="0 c" step="any" oninput="updateEquipValue(${item.id}, 'chaos', this.value)">
                 </td>
                 <td style="text-align: center;">
                     <button class="btn-delete" onclick="deleteEquipItem(${item.id})">Hapus</button>
@@ -542,8 +542,10 @@
     }
 
     function hitungTotalEquip() {
-        let total = equipmentList.reduce((acc, curr) => acc + (parseFloat(curr.price) || 0), 0);
-        document.getElementById('totalEquipCost').innerText = `${total.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Chaos`;
+        let totalDiv = equipmentList.reduce((acc, curr) => acc + (parseFloat(curr.divine) || 0), 0);
+        let totalChaos = equipmentList.reduce((acc, curr) => acc + (parseFloat(curr.chaos) || 0), 0);
+        
+        document.getElementById('totalEquipCost').innerText = `${totalDiv.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Div  |  ${totalChaos.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Chaos`;
     }
 
     function resetEquipForm() {
@@ -562,7 +564,7 @@
         return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
-    // --- LOGIC LOCAL STORAGE (PENYIMPANAN OTOMATIS) ---
+    // --- LOGIC LOCAL STORAGE ---
     function saveData(id) {
         localStorage.setItem(id, document.getElementById(id).value);
     }
@@ -589,7 +591,7 @@
             if (localStorage.getItem(`lf_price_${i}`)) document.getElementById(`lf_price_${i}`).value = localStorage.getItem(`lf_price_${i}`);
         }
 
-        // Restore Equipment Table Data
+        // Restore Equipment
         const savedEquip = localStorage.getItem('equipmentList');
         if (savedEquip) {
             equipmentList = JSON.parse(savedEquip);
