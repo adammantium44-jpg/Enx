@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>POE Auto-Price Farm Calculator</title>
+    <title>POE Farm Expense Calculator (Manual)</title>
     <style>
         body {
             background-color: #0b0c0e;
@@ -23,7 +23,7 @@
             border-radius: 8px;
             box-shadow: 0 0 25px rgba(0, 0, 0, 0.9);
             width: 100%;
-            max-width: 700px;
+            max-width: 650px;
             padding: 25px;
             box-sizing: border-box;
         }
@@ -32,16 +32,12 @@
             color: #af6025;
             text-align: center;
             margin-top: 0;
-            margin-bottom: 10px;
-            text-shadow: 0 0 8px rgba(175, 96, 37, 0.4);
-            text-transform: uppercase;
-        }
-
-        .status-bar {
-            text-align: center;
-            font-size: 0.85em;
-            color: #1e90ff;
             margin-bottom: 20px;
+            text-shadow: 0 0 8px rgba(175, 96, 37, 0.4);
+            border-bottom: 1px solid #332619;
+            padding-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .table-header {
@@ -62,12 +58,12 @@
             align-items: center;
         }
 
-        .col-name { flex: 2.5; }
+        .col-name { flex: 2; }
         .col-qty { flex: 1; }
-        .col-price { flex: 1.2; }
+        .col-price { flex: 1; }
         .col-total { flex: 1; text-align: right; }
 
-        input, select {
+        input {
             width: 100%;
             padding: 8px 10px;
             background-color: #0b0c0e;
@@ -75,17 +71,19 @@
             color: #e0e0e0;
             border-radius: 4px;
             box-sizing: border-box;
-            font-size: 0.9em;
+            font-size: 0.95em;
         }
 
-        input:focus, select:focus {
+        input:focus {
             outline: none;
             border-color: #af6025;
+            box-shadow: 0 0 5px rgba(175, 96, 37, 0.5);
         }
 
         .item-subtotal {
             color: #e5b158;
             font-weight: bold;
+            font-size: 0.95em;
         }
 
         .summary-box {
@@ -99,107 +97,76 @@
             align-items: center;
         }
 
+        .summary-title {
+            color: #a38d6d;
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+
         .total-expense {
             color: #ff4d4d;
             font-size: 1.4em;
             font-weight: bold;
+            text-shadow: 0 0 5px rgba(255, 77, 77, 0.3);
+        }
+
+        .btn-reset {
+            margin-top: 15px;
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(to bottom, #4a210d, #2d1408);
+            border: 1px solid #7e3e1b;
+            color: #a38d6d;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-reset:hover {
+            background: linear-gradient(to bottom, #7e3e1b, #4a210d);
+            color: #fff;
         }
     </style>
 </head>
 <body>
 
 <div class="calculator-card">
-    <h2>Catatan Modal Farming (Live Market)</h2>
-    <div class="status-bar" id="statusBar">🌐 Mengambil data harga dari POE Ninja Market...</div>
+    <h2>Catatan Modal Farming</h2>
 
+    <!-- Header Kolom -->
     <div class="table-header">
-        <div class="col-name">Pilih Scarab / Item</div>
-        <div class="col-qty">Qty</div>
-        <div class="col-price">Harga Market (@ c)</div>
+        <div class="col-name">Nama Item / Scarab</div>
+        <div class="col-qty">Jumlah (Qty)</div>
+        <div class="col-price">Harga (@ Chaos)</div>
         <div class="col-total">Subtotal</div>
     </div>
 
+    <!-- Container 6 Baris Input -->
     <div id="itemRows"></div>
 
+    <!-- Ringkasan Total Modal -->
     <div class="summary-box">
-        <span style="color: #a38d6d; font-weight: bold;">TOTAL MODAL:</span>
+        <span class="summary-title">TOTAL MODAL DIKELUARKAN:</span>
         <span class="total-expense" id="grandTotal">0 Chaos</span>
     </div>
+
+    <button class="btn-reset" onclick="resetForm()">Reset Semua Input</button>
 </div>
 
 <script>
-    const currentLeague = "Alflame"; // Ganti nama league di sini jika musim berganti
-
-    const defaultItems = [
-        "Harvest Scarab",
-        "Harvest Scarab of Doubling",
-        "Harvest Scarab of Cornucopia",
-        "Harvest Scarab of Risk",
-        "Monstrous Lineage Scarab",
-        "Ambush Scarab",
-        "Ambush Scarab of Discernment",
-        "Divination Scarab",
-        "Awakened Sextant",
-        "Charged Compass",
-        "Allflame Ember"
-    ];
-
-    let marketPrices = {};
-
-    // URL menggunakan variabel currentLeague
-    const apiUrls = [
-        'https://api.allorigins.win/get?url=' + encodeURIComponent(`https://poe.ninja/api/data/itemoverview?league=${currentLeague}&type=Scarab`),
-        `https://corsproxy.io/?https://poe.ninja/api/data/itemoverview?league=${currentLeague}&type=Scarab`
-    ];
-
-    async function fetchMarketPrices() {
-        const statusBar = document.getElementById('statusBar');
-        let success = false;
-
-        for (let url of apiUrls) {
-            try {
-                const response = await fetch(url);
-                let data = await response.json();
-                
-                if (data.contents) {
-                    data = JSON.parse(data.contents);
-                }
-
-                if (data && data.lines) {
-                    data.lines.forEach(item => {
-                        marketPrices[item.name] = item.chaosValue;
-                    });
-                    
-                    statusBar.innerText = `✅ Harga Market Berhasil Diperbarui dari League: ${currentLeague}!`;
-                    statusBar.style.color = "#00ff7f";
-                    success = true;
-                    updateAllPrices();
-                    break;
-                }
-            } catch (e) {
-                console.log("Mencoba proxy alternatif...", e);
-            }
-        }
-
-        if (!success) {
-            statusBar.innerText = `⚠️ API Terblokir atau League '${currentLeague}' tidak ditemukan. Silakan isi manual.`;
-            statusBar.style.color = "#ff4d4d";
-        }
-    }
-
+    // Membuat 6 Baris Input Secara Otomatis
     const container = document.getElementById('itemRows');
+    
     for (let i = 1; i <= 6; i++) {
         const row = document.createElement('div');
         row.className = 'row';
         row.innerHTML = `
             <div class="col-name">
-                <select id="select_${i}" onchange="onItemSelect(${i})">
-                    <option value="">-- Pilih Item --</option>
-                    ${defaultItems.map(item => `<option value="${item}">${item}</option>`).join('')}
-                </select>
+                <input type="text" id="name_${i}" placeholder="Slot ${i} (misal: Ambush Scarab)">
             </div>
             <div class="col-qty">
-                <input type="number" id="qty_${i}" value="1" min="0" oninput="hitungTotal()">
+                <input type="number" id="qty_${i}" value="0" min="0" oninput="hitungTotal()">
             </div>
             <div class="col-price">
                 <input type="number" id="price_${i}" value="0" min="0" step="any" oninput="hitungTotal()">
@@ -211,38 +178,34 @@
         container.appendChild(row);
     }
 
-    function onItemSelect(rowIndex) {
-        const selectedName = document.getElementById(`select_${rowIndex}`).value;
-        const priceInput = document.getElementById(`price_${rowIndex}`);
-
-        if (marketPrices[selectedName]) {
-            priceInput.value = marketPrices[selectedName];
-        } else {
-            priceInput.value = 0;
-        }
-        hitungTotal();
-    }
-
-    function updateAllPrices() {
-        for (let i = 1; i <= 6; i++) {
-            onItemSelect(i);
-        }
-    }
-
+    // Fungsi Kalkulasi Real-Time
     function hitungTotal() {
-        let grandTotal = 0;
+        let totalModal = 0;
+
         for (let i = 1; i <= 6; i++) {
             const qty = parseFloat(document.getElementById(`qty_${i}`).value) || 0;
             const price = parseFloat(document.getElementById(`price_${i}`).value) || 0;
-            const subtotal = qty * price;
             
-            grandTotal += subtotal;
-            document.getElementById(`subtotal_${i}`).innerText = `${subtotal.toFixed(1)} c`;
+            const subtotal = qty * price;
+            totalModal += subtotal;
+
+            // Format angka subtotal per baris
+            document.getElementById(`subtotal_${i}`).innerText = `${subtotal.toLocaleString('id-ID')} c`;
         }
-        document.getElementById('grandTotal').innerText = `${grandTotal.toFixed(1)} Chaos`;
+
+        // Update Total Keseluruhan
+        document.getElementById('grandTotal').innerText = `${totalModal.toLocaleString('id-ID')} Chaos`;
     }
 
-    fetchMarketPrices();
+    // Fungsi Reset
+    function resetForm() {
+        for (let i = 1; i <= 6; i++) {
+            document.getElementById(`name_${i}`).value = '';
+            document.getElementById(`qty_${i}`).value = '0';
+            document.getElementById(`price_${i}`).value = '0';
+        }
+        hitungTotal();
+    }
 </script>
 
 </body>
