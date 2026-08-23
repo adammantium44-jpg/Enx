@@ -15,37 +15,60 @@
             min-height: 100vh;
             margin: 0;
             padding: 20px;
+            box-sizing: border-box;
         }
 
         .calculator-card {
             background-color: #181a20;
             border: 2px solid #5a4831;
             border-radius: 8px;
-            box-shadow: 0 0 25px rgba(0, 0, 0, 0.9);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.9);
             width: 100%;
-            max-width: 700px;
+            max-width: 1100px;
             padding: 25px;
             box-sizing: border-box;
         }
 
-        h2, h3 {
+        h2 {
             color: #af6025;
             text-align: center;
             margin-top: 0;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             text-shadow: 0 0 8px rgba(175, 96, 37, 0.4);
             text-transform: uppercase;
             letter-spacing: 1px;
+            border-bottom: 1px solid #332619;
+            padding-bottom: 12px;
+        }
+
+        /* Container Layout Kiri & Kanan */
+        .grid-container {
+            display: flex;
+            gap: 25px;
+            margin-bottom: 20px;
+        }
+
+        .column-box {
+            flex: 1;
+            background-color: #12141a;
+            border: 1px solid #3d3122;
+            border-radius: 6px;
+            padding: 18px;
+            box-sizing: border-box;
         }
 
         h3 {
-            font-size: 1.05em;
-            color: #e5b158;
-            margin-top: 25px;
-            border-bottom: 1px solid #332619;
+            font-size: 1.1em;
+            margin-top: 0;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #282017;
             padding-bottom: 8px;
-            text-align: left;
         }
+
+        .expense-title { color: #ff6b6b; }
+        .income-title { color: #2ecc71; }
 
         .table-header {
             display: flex;
@@ -53,7 +76,7 @@
             margin-bottom: 10px;
             font-weight: bold;
             color: #a38d6d;
-            font-size: 0.88em;
+            font-size: 0.85em;
             padding-bottom: 5px;
             border-bottom: 1px solid #282017;
         }
@@ -82,7 +105,7 @@
         }
 
         input[readonly] {
-            background-color: #12141a;
+            background-color: #181a20;
             color: #af6025;
             border-color: #2a2218;
             font-weight: bold;
@@ -99,52 +122,60 @@
         .vivid { color: #ffd700 !important; }
         .primal { color: #00e5ff !important; }
 
+        /* Banner Ringkasan Bawah */
         .summary-container {
-            margin-top: 25px;
             background-color: #0b0c0e;
             border: 1px solid #3d3122;
             border-radius: 6px;
-            padding: 15px;
+            padding: 18px;
             display: flex;
-            flex-direction: column;
-            gap: 10px;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
-        .summary-row {
+        .summary-item {
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
             align-items: center;
-            font-size: 1em;
+            gap: 4px;
         }
 
         .summary-title {
             color: #a38d6d;
+            font-size: 0.9em;
             font-weight: bold;
+            text-transform: uppercase;
         }
 
         .val-expense {
             color: #ff4d4d;
+            font-size: 1.25em;
             font-weight: bold;
         }
 
         .val-income {
             color: #2ecc71;
+            font-size: 1.25em;
             font-weight: bold;
         }
 
-        .summary-divider {
-            border-top: 1px solid #332619;
-            margin: 5px 0;
+        .summary-divider-v {
+            width: 1px;
+            height: 40px;
+            background-color: #332619;
         }
 
         .profit-title {
             color: #e5b158;
-            font-size: 1.15em;
+            font-size: 0.95em;
             font-weight: bold;
+            text-transform: uppercase;
         }
 
         .val-profit {
-            font-size: 1.4em;
+            font-size: 1.45em;
             font-weight: bold;
             color: #2ecc71;
             text-shadow: 0 0 5px rgba(46, 204, 113, 0.3);
@@ -172,6 +203,19 @@
             background: linear-gradient(to bottom, #7e3e1b, #4a210d);
             color: #fff;
         }
+
+        /* Responsif saat dibuka di layar HP */
+        @media (max-width: 850px) {
+            .grid-container {
+                flex-direction: column;
+            }
+            .summary-divider-v {
+                display: none;
+            }
+            .summary-container {
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
 <body>
@@ -179,39 +223,52 @@
 <div class="calculator-card">
     <h2>Catatan Harvest Farming</h2>
 
-    <!-- Section Modal -->
-    <h3>💸 Modal Dikeluarkan</h3>
-    <div class="table-header">
-        <div class="col-name">Nama Item</div>
-        <div class="col-qty">Qty</div>
-        <div class="col-ratio" style="visibility: hidden;">-</div>
-        <div class="col-price">Total Harga (Chaos)</div>
-    </div>
-    <div id="itemRows"></div>
+    <!-- Grid Layout Kiri & Kanan -->
+    <div class="grid-container">
+        
+        <!-- KOLOM KIRI: MODAL -->
+        <div class="column-box">
+            <h3 class="expense-title">💸 Modal Dikeluarkan</h3>
+            <div class="table-header">
+                <div class="col-name">Nama Item</div>
+                <div class="col-qty">Qty</div>
+                <div class="col-price">Total (Chaos)</div>
+            </div>
+            <div id="itemRows"></div>
+        </div>
 
-    <!-- Section Hasil Farm -->
-    <h3>🌾 Hasil Farm (Lifeforce)</h3>
-    <div class="table-header">
-        <div class="col-name">Tipe Lifeforce</div>
-        <div class="col-qty">Qty LF</div>
-        <div class="col-ratio">Rasio (1c : LF)</div>
-        <div class="col-price">Nilai (Chaos)</div>
-    </div>
-    <div id="lifeforceRows"></div>
+        <!-- KOLOM KANAN: HASIL FARM -->
+        <div class="column-box">
+            <h3 class="income-title">🌾 Hasil Farm (Lifeforce)</h3>
+            <div class="table-header">
+                <div class="col-name">Tipe Lifeforce</div>
+                <div class="col-qty">Qty LF</div>
+                <div class="col-ratio">Rasio (1c:LF)</div>
+                <div class="col-price">Hasil (Chaos)</div>
+            </div>
+            <div id="lifeforceRows"></div>
+        </div>
 
-    <!-- Ringkasan Total & Profit -->
+    </div>
+
+    <!-- Banner Summary Bawah -->
     <div class="summary-container">
-        <div class="summary-row">
-            <span class="summary-title">Total Modal Dikeluarkan:</span>
+        <div class="summary-item">
+            <span class="summary-title">Total Modal</span>
             <span class="val-expense" id="totalExpense">0 Chaos</span>
         </div>
-        <div class="summary-row">
-            <span class="summary-title">Total Hasil Farm:</span>
+
+        <div class="summary-divider-v"></div>
+
+        <div class="summary-item">
+            <span class="summary-title">Total Hasil Farm</span>
             <span class="val-income" id="totalIncome">0 Chaos</span>
         </div>
-        <div class="summary-divider"></div>
-        <div class="summary-row">
-            <span class="profit-title">BERSIH / PROFIT:</span>
+
+        <div class="summary-divider-v"></div>
+
+        <div class="summary-item">
+            <span class="profit-title">Laba / Profit Bersih</span>
             <span class="val-profit" id="netProfit">0 Chaos</span>
         </div>
     </div>
@@ -220,7 +277,7 @@
 </div>
 
 <script>
-    // Item Modal
+    // Item Modal (Sisi Kiri)
     const fixedItems = [
         "Scarab of Monstrous Lineage",
         "Sacrifice of Dust",
@@ -230,18 +287,18 @@
         "MAP"
     ];
 
-    // Item Lifeforce (Hasil Farm)
+    // Item Lifeforce (Sisi Kanan)
     const lifeforceItems = [
-        { name: "Wild Crystallised Lifeforce", class: "wild" },
-        { name: "Vivid Crystallised Lifeforce", class: "vivid" },
-        { name: "Primal Crystallised Lifeforce", class: "primal" },
-        { name: "Sacred Crystallised Lifeforce", class: "vivid" }
+        { name: "Wild Lifeforce", class: "wild" },
+        { name: "Vivid Lifeforce", class: "vivid" },
+        { name: "Primal Lifeforce", class: "primal" },
+        { name: "Sacred Lifeforce", class: "vivid" }
     ];
 
     const container = document.getElementById('itemRows');
     const lfContainer = document.getElementById('lifeforceRows');
 
-    // 1. Render Slot Modal
+    // 1. Render Slot Modal (Kolom Kiri)
     fixedItems.forEach((itemName, index) => {
         const i = index + 1;
         const row = document.createElement('div');
@@ -253,9 +310,6 @@
             <div class="col-qty">
                 <input type="number" id="qty_${i}" placeholder="Qty" min="0">
             </div>
-            <div class="col-ratio" style="visibility: hidden;">
-                <input type="text" disabled>
-            </div>
             <div class="col-price">
                 <input type="number" id="price_${i}" placeholder="0 c" min="0" step="any" oninput="hitungSemua()">
             </div>
@@ -263,7 +317,7 @@
         container.appendChild(row);
     });
 
-    // 2. Render Slot Hasil Lifeforce
+    // 2. Render Slot Hasil Lifeforce (Kolom Kanan)
     lifeforceItems.forEach((lf, index) => {
         const i = index + 1;
         const row = document.createElement('div');
@@ -273,10 +327,10 @@
                 <input type="text" value="${lf.name}" class="${lf.class}" readonly>
             </div>
             <div class="col-qty">
-                <input type="number" id="lf_qty_${i}" placeholder="Qty LF" min="0" oninput="hitungLifeforce(${i})">
+                <input type="number" id="lf_qty_${i}" placeholder="Qty" min="0" oninput="hitungLifeforce(${i})">
             </div>
             <div class="col-ratio">
-                <input type="number" id="lf_ratio_${i}" placeholder="Rasio LF" min="0" step="any" oninput="hitungLifeforce(${i})">
+                <input type="number" id="lf_ratio_${i}" placeholder="Rasio" min="0" step="any" oninput="hitungLifeforce(${i})">
             </div>
             <div class="col-price">
                 <input type="number" id="lf_price_${i}" placeholder="0 c" min="0" step="any" oninput="hitungSemua()">
