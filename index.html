@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>POE Farm Expense Calculator</title>
+    <title>POE Harvest Profit Calculator</title>
     <style>
         body {
             background-color: #0b0c0e;
@@ -99,28 +99,60 @@
         .vivid { color: #ffd700 !important; }
         .primal { color: #00e5ff !important; }
 
-        .summary-box {
+        .summary-container {
             margin-top: 25px;
             background-color: #0b0c0e;
             border: 1px solid #3d3122;
             border-radius: 6px;
             padding: 15px;
             display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .summary-row {
+            display: flex;
             justify-content: space-between;
             align-items: center;
+            font-size: 1em;
         }
 
         .summary-title {
             color: #a38d6d;
-            font-size: 1.1em;
             font-weight: bold;
         }
 
-        .total-expense {
+        .val-expense {
             color: #ff4d4d;
+            font-weight: bold;
+        }
+
+        .val-income {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+
+        .summary-divider {
+            border-top: 1px solid #332619;
+            margin: 5px 0;
+        }
+
+        .profit-title {
+            color: #e5b158;
+            font-size: 1.15em;
+            font-weight: bold;
+        }
+
+        .val-profit {
             font-size: 1.4em;
             font-weight: bold;
-            text-shadow: 0 0 5px rgba(255, 77, 77, 0.3);
+            color: #2ecc71;
+            text-shadow: 0 0 5px rgba(46, 204, 113, 0.3);
+        }
+
+        .val-loss {
+            color: #ff4d4d !important;
+            text-shadow: 0 0 5px rgba(255, 77, 77, 0.3) !important;
         }
 
         .btn-reset {
@@ -145,42 +177,50 @@
 <body>
 
 <div class="calculator-card">
-    <h2>Catatan Modal Farming</h2>
+    <h2>Catatan Harvest Farming</h2>
 
-    <!-- Header Slot Utama -->
+    <!-- Section Modal -->
+    <h3>💸 Modal Dikeluarkan</h3>
     <div class="table-header">
         <div class="col-name">Nama Item</div>
         <div class="col-qty">Qty</div>
         <div class="col-ratio" style="visibility: hidden;">-</div>
         <div class="col-price">Total Harga (Chaos)</div>
     </div>
-
-    <!-- Container Slot Utama -->
     <div id="itemRows"></div>
 
-    <!-- Section Khusus Harvest Lifeforce -->
-    <h3>🌱 Harvest Lifeforce</h3>
-
+    <!-- Section Hasil Farm -->
+    <h3>🌾 Hasil Farm (Lifeforce)</h3>
     <div class="table-header">
         <div class="col-name">Tipe Lifeforce</div>
         <div class="col-qty">Qty LF</div>
         <div class="col-ratio">Rasio (1c : LF)</div>
-        <div class="col-price">Hasil (Chaos)</div>
+        <div class="col-price">Nilai (Chaos)</div>
     </div>
-    
     <div id="lifeforceRows"></div>
 
-    <!-- Ringkasan Total Modal -->
-    <div class="summary-box">
-        <span class="summary-title">TOTAL MODAL DIKELUARKAN:</span>
-        <span class="total-expense" id="grandTotal">0 Chaos</span>
+    <!-- Ringkasan Total & Profit -->
+    <div class="summary-container">
+        <div class="summary-row">
+            <span class="summary-title">Total Modal Dikeluarkan:</span>
+            <span class="val-expense" id="totalExpense">0 Chaos</span>
+        </div>
+        <div class="summary-row">
+            <span class="summary-title">Total Hasil Farm:</span>
+            <span class="val-income" id="totalIncome">0 Chaos</span>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-row">
+            <span class="profit-title">BERSIH / PROFIT:</span>
+            <span class="val-profit" id="netProfit">0 Chaos</span>
+        </div>
     </div>
 
     <button class="btn-reset" onclick="resetForm()">Reset Semua Input</button>
 </div>
 
 <script>
-    // Slot Map & Scarab Utama
+    // Item Modal
     const fixedItems = [
         "Scarab of Monstrous Lineage",
         "Sacrifice of Dust",
@@ -190,7 +230,7 @@
         "MAP"
     ];
 
-    // Slot Harvest Lifeforce
+    // Item Lifeforce (Hasil Farm)
     const lifeforceItems = [
         { name: "Wild Crystallised Lifeforce", class: "wild" },
         { name: "Vivid Crystallised Lifeforce", class: "vivid" },
@@ -201,7 +241,7 @@
     const container = document.getElementById('itemRows');
     const lfContainer = document.getElementById('lifeforceRows');
 
-    // 1. Render Slot Utama
+    // 1. Render Slot Modal
     fixedItems.forEach((itemName, index) => {
         const i = index + 1;
         const row = document.createElement('div');
@@ -217,13 +257,13 @@
                 <input type="text" disabled>
             </div>
             <div class="col-price">
-                <input type="number" id="price_${i}" placeholder="0 c" min="0" step="any" oninput="hitungTotal()">
+                <input type="number" id="price_${i}" placeholder="0 c" min="0" step="any" oninput="hitungSemua()">
             </div>
         `;
         container.appendChild(row);
     });
 
-    // 2. Render Slot Lifeforce (dengan input Rasio masing-masing)
+    // 2. Render Slot Hasil Lifeforce
     lifeforceItems.forEach((lf, index) => {
         const i = index + 1;
         const row = document.createElement('div');
@@ -239,13 +279,13 @@
                 <input type="number" id="lf_ratio_${i}" placeholder="Rasio LF" min="0" step="any" oninput="hitungLifeforce(${i})">
             </div>
             <div class="col-price">
-                <input type="number" id="lf_price_${i}" placeholder="0 c" min="0" step="any" oninput="hitungTotal()">
+                <input type="number" id="lf_price_${i}" placeholder="0 c" min="0" step="any" oninput="hitungSemua()">
             </div>
         `;
         lfContainer.appendChild(row);
     });
 
-    // Kalkulasi per Baris Lifeforce (Qty / Rasio Khusus Baris Ini)
+    // Kalkulasi Hasil Lifeforce
     function hitungLifeforce(index) {
         const qty = parseFloat(document.getElementById(`lf_qty_${index}`).value) || 0;
         const ratio = parseFloat(document.getElementById(`lf_ratio_${index}`).value) || 0;
@@ -257,26 +297,42 @@
         } else {
             priceInput.value = '';
         }
-        hitungTotal();
+        hitungSemua();
     }
 
-    // Hitung Total Modal Keseluruhan
-    function hitungTotal() {
-        let totalModal = 0;
+    // Hitung Total Modal, Total Hasil, dan Profit
+    function hitungSemua() {
+        let modal = 0;
+        let hasil = 0;
 
-        // Total dari Slot Utama
+        // Hitung Modal
         for (let i = 1; i <= fixedItems.length; i++) {
             const price = parseFloat(document.getElementById(`price_${i}`).value) || 0;
-            totalModal += price;
+            modal += price;
         }
 
-        // Total dari Lifeforce
+        // Hitung Hasil Lifeforce
         for (let i = 1; i <= lifeforceItems.length; i++) {
             const lfPrice = parseFloat(document.getElementById(`lf_price_${i}`).value) || 0;
-            totalModal += lfPrice;
+            hasil += lfPrice;
         }
 
-        document.getElementById('grandTotal').innerText = `${totalModal.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} Chaos`;
+        // Hitung Profit Bersih
+        const profit = hasil - modal;
+
+        // Display
+        document.getElementById('totalExpense').innerText = `${modal.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} Chaos`;
+        document.getElementById('totalIncome').innerText = `${hasil.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} Chaos`;
+
+        const profitElem = document.getElementById('netProfit');
+        profitElem.innerText = `${profit.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} Chaos`;
+
+        // Ubah warna text jika rugi
+        if (profit < 0) {
+            profitElem.classList.add('val-loss');
+        } else {
+            profitElem.classList.remove('val-loss');
+        }
     }
 
     // Reset Form
@@ -290,7 +346,7 @@
             document.getElementById(`lf_ratio_${i}`).value = '';
             document.getElementById(`lf_price_${i}`).value = '';
         }
-        hitungTotal();
+        hitungSemua();
     }
 </script>
 
