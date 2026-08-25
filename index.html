@@ -189,38 +189,21 @@
         .equip-table th { background-color: #0b0c0e; color: #a38d6d; font-size: 0.9em; }
         .equip-table tr:nth-child(even) { background-color: #0f1014; }
 
-        .item-hover-name {
+        /* ITEM CLICK STYLING */
+        .item-clickable-name {
             color: #af6025;
             font-weight: bold;
-            cursor: help;
-            position: relative;
-            display: inline-block;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.2s;
         }
 
-        .item-hover-name:hover { text-decoration: underline; }
-
-        .poe-tooltip {
-            visibility: hidden;
-            width: 320px;
-            background-color: #000000;
-            border: 2px solid #7b6241;
-            border-radius: 2px;
-            padding: 12px;
-            position: absolute;
-            z-index: 100;
-            bottom: 125%;
-            left: 0;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.9);
-            white-space: pre-wrap;
-            font-family: FontinSmallCaps, Verdana, Arial, Helvetica, sans-serif;
-            font-size: 0.85em;
-            color: #7f7f7f;
-            opacity: 0;
-            transition: opacity 0.2s;
-            pointer-events: none;
+        .item-clickable-name:hover {
+            color: #d6752d;
+            text-decoration: underline;
         }
-
-        .item-hover-name:hover .poe-tooltip { visibility: visible; opacity: 1; }
 
         .btn-delete {
             background-color: #c0392b;
@@ -234,10 +217,11 @@
 
         .btn-delete:hover { background-color: #e74c3c; }
 
+        /* MODAL GENERAL */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.85);
             display: none;
             justify-content: center;
             align-items: center;
@@ -252,6 +236,22 @@
             padding: 20px;
             border-radius: 6px;
             box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+
+        /* DETAIL ITEM MODAL */
+        .item-detail-content {
+            background-color: #000000;
+            border: 2px solid #7b6241;
+            border-radius: 4px;
+            padding: 15px;
+            color: #7f7f7f;
+            font-family: FontinSmallCaps, Verdana, Arial, Helvetica, sans-serif;
+            font-size: 0.9em;
+            white-space: pre-wrap;
+            max-height: 350px;
+            overflow-y: auto;
+            margin-top: 10px;
+            line-height: 1.4;
         }
 
         @media (max-width: 850px) {
@@ -316,7 +316,7 @@
         <button class="btn-reset" onclick="resetFarmForm()">Reset Farming Form</button>
     </div>
 
-    <!-- TAB 2: BELANJA EQUIPMENT (WITH BOOKMARKS) -->
+    <!-- TAB 2: BELANJA EQUIPMENT -->
     <div id="equipTab" class="tab-content">
         <!-- BOOKMARK MANAGEMENT BAR -->
         <div class="bookmark-bar">
@@ -331,13 +331,13 @@
         <div class="column-box" style="margin-bottom: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h3 style="color: #3498db; margin: 0; border: none;" id="currentBookmarkTitle">🛡️ Catatan Equipment</h3>
-                <button class="btn-action" onclick="openModal()">+ Tambah Item</button>
+                <button class="btn-action" onclick="openInputModal()">+ Tambah Item</button>
             </div>
 
             <table class="equip-table">
                 <thead>
                     <tr>
-                        <th style="width: 45%;">Nama Item Lengkap (Arahkan Kursor)</th>
+                        <th style="width: 45%;">Nama Item Lengkap (Klik untuk Stats)</th>
                         <th style="width: 20%;">Divine (div)</th>
                         <th style="width: 20%;">Chaos (c)</th>
                         <th style="width: 15%; text-align: center;">Aksi</th>
@@ -361,16 +361,28 @@
 
 </div>
 
-<!-- MODAL POPUP INPUT POE TRADE -->
-<div class="modal-overlay" id="itemModal">
+<!-- MODAL 1: INPUT POE TRADE TEXT -->
+<div class="modal-overlay" id="inputModal">
     <div class="modal-box">
         <h3 style="color: #af6025;">Paste Text dari PoE Trade</h3>
         <p style="font-size: 0.8em; color: #a38d6d; margin-top: -10px;">Paste mentah hasil copy item kamu. Nama & mata uang akan dibaca otomatis.</p>
         <textarea id="rawItemInput" rows="10" placeholder="Paste data item di sini...&#10;&#10;Contoh:&#10;Item Class: Rings&#10;Rarity: Unique&#10;The Sundered Will&#10;Fugitive Ring&#10;...&#10;Note: ~b/o 7 divine"></textarea>
         
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
-            <button class="btn-reset" style="margin: 0; width: auto; background: #333;" onclick="closeModal()">Batal</button>
+            <button class="btn-reset" style="margin: 0; width: auto; background: #333;" onclick="closeInputModal()">Batal</button>
             <button class="btn-action" onclick="addItemFromText()">Proses & Simpan</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 2: DETAIL STATS ITEM (DI-KLIK) -->
+<div class="modal-overlay" id="detailModal">
+    <div class="modal-box" style="max-width: 550px;">
+        <h3 style="color: #af6025; margin-bottom: 5px;" id="detailItemTitle">Detail Item</h3>
+        <div class="item-detail-content" id="detailItemText"></div>
+        
+        <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
+            <button class="btn-action" onclick="closeDetailModal()">Tutup</button>
         </div>
     </div>
 </div>
@@ -467,7 +479,7 @@
         hitungSemuaFarm();
     }
 
-    // --- TAB 2: EQUIPMENT LOGIC (BOOKMARK MULTI-PROFILE) ---
+    // --- TAB 2: EQUIPMENT LOGIC ---
     let bookmarks = {}; 
     let activeBookmarkId = "default";
 
@@ -476,7 +488,6 @@
         if (savedBookmarks) {
             bookmarks = JSON.parse(savedBookmarks);
         } else {
-            // Migrasi dari format lama atau inisialisasi awal
             const oldList = localStorage.getItem('equipmentList');
             bookmarks = {
                 "default": {
@@ -524,10 +535,7 @@
         if (!name || !name.trim()) return;
 
         const newId = "bm_" + Date.now();
-        bookmarks[newId] = {
-            name: name.trim(),
-            items: []
-        };
+        bookmarks[newId] = { name: name.trim(), items: [] };
         activeBookmarkId = newId;
         saveBookmarksToStorage();
         renderBookmarkDropdown();
@@ -550,13 +558,28 @@
         }
     }
 
-    function openModal() {
+    // --- MODAL HANDLING ---
+    function openInputModal() {
         document.getElementById('rawItemInput').value = '';
-        document.getElementById('itemModal').style.display = 'flex';
+        document.getElementById('inputModal').style.display = 'flex';
     }
 
-    function closeModal() {
-        document.getElementById('itemModal').style.display = 'none';
+    function closeInputModal() {
+        document.getElementById('inputModal').style.display = 'none';
+    }
+
+    function openDetailModal(itemId) {
+        const currentItems = bookmarks[activeBookmarkId]?.items || [];
+        const item = currentItems.find(i => i.id === itemId);
+        if (item) {
+            document.getElementById('detailItemTitle').innerText = item.name;
+            document.getElementById('detailItemText').innerText = item.fullStats;
+            document.getElementById('detailModal').style.display = 'flex';
+        }
+    }
+
+    function closeDetailModal() {
+        document.getElementById('detailModal').style.display = 'none';
     }
 
     function addItemFromText() {
@@ -601,7 +624,7 @@
         bookmarks[activeBookmarkId].items.push(newItem);
         saveBookmarksToStorage();
         renderEquipTable();
-        closeModal();
+        closeInputModal();
     }
 
     function deleteEquipItem(id) {
@@ -629,9 +652,8 @@
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
-                    <div class="item-hover-name">
-                        ${item.name}
-                        <div class="poe-tooltip">${escapeHtml(item.fullStats)}</div>
+                    <div class="item-clickable-name" onclick="openDetailModal(${item.id})">
+                        <span>👁️ ${escapeHtml(item.name)}</span>
                     </div>
                 </td>
                 <td>
