@@ -103,7 +103,7 @@
         .col-ratio { flex: 1; }
         .col-price { flex: 1.1; }
 
-        input, textarea {
+        input, textarea, select {
             width: 100%;
             padding: 8px 10px;
             background-color: #0b0c0e;
@@ -115,7 +115,7 @@
         }
 
         input[readonly] { background-color: #181a20; color: #af6025; border-color: #2a2218; font-weight: bold; cursor: not-allowed; }
-        input:focus:not([readonly]), textarea:focus { outline: none; border-color: #af6025; box-shadow: 0 0 5px rgba(175, 96, 37, 0.5); }
+        input:focus:not([readonly]), textarea:focus, select:focus { outline: none; border-color: #af6025; box-shadow: 0 0 5px rgba(175, 96, 37, 0.5); }
 
         .wild { color: #e040fb !important; }
         .vivid { color: #ffd700 !important; }
@@ -172,6 +172,18 @@
         .btn-reset:hover { background: linear-gradient(to bottom, #7e3e1b, #4a210d); color: #fff; }
 
         /* --- EQUIPMENT TAB STYLING --- */
+        .bookmark-bar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background-color: #0b0c0e;
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: 1px solid #3d3122;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
         .equip-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         .equip-table th, .equip-table td { border: 1px solid #3d3122; padding: 10px; text-align: left; }
         .equip-table th { background-color: #0b0c0e; color: #a38d6d; font-size: 0.9em; }
@@ -304,11 +316,21 @@
         <button class="btn-reset" onclick="resetFarmForm()">Reset Farming Form</button>
     </div>
 
-    <!-- TAB 2: BELANJA EQUIPMENT -->
+    <!-- TAB 2: BELANJA EQUIPMENT (WITH BOOKMARKS) -->
     <div id="equipTab" class="tab-content">
+        <!-- BOOKMARK MANAGEMENT BAR -->
+        <div class="bookmark-bar">
+            <span style="font-weight: bold; color: #a38d6d;">📌 Bookmark Catatan:</span>
+            <select id="bookmarkSelect" onchange="switchBookmark(this.value)" style="flex: 1; max-width: 250px;">
+                <!-- Auto populate -->
+            </select>
+            <button class="btn-action" onclick="createNewBookmark()" style="padding: 6px 12px; font-size: 0.85em;">+ Buat Baru</button>
+            <button class="btn-delete" onclick="deleteCurrentBookmark()" style="padding: 7px 12px; font-size: 0.85em;">Hapus Daftar Ini</button>
+        </div>
+
         <div class="column-box" style="margin-bottom: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="color: #3498db; margin: 0; border: none;">🛡️ Catatan Belanja Equipment</h3>
+                <h3 style="color: #3498db; margin: 0; border: none;" id="currentBookmarkTitle">🛡️ Catatan Equipment</h3>
                 <button class="btn-action" onclick="openModal()">+ Tambah Item</button>
             </div>
 
@@ -334,7 +356,7 @@
             </div>
         </div>
 
-        <button class="btn-reset" onclick="resetEquipForm()">Hapus Semua Catatan Item</button>
+        <button class="btn-reset" onclick="resetEquipForm()">Clear Semua Item di Daftar Ini</button>
     </div>
 
 </div>
@@ -343,7 +365,7 @@
 <div class="modal-overlay" id="itemModal">
     <div class="modal-box">
         <h3 style="color: #af6025;">Paste Text dari PoE Trade</h3>
-        <p style="font-size: 0.8em; color: #a38d6d; margin-top: -10px;">Paste mentah hasil copy item kamu. Nama lengkap & mata uang (Divine/Chaos) akan dibaca otomatis.</p>
+        <p style="font-size: 0.8em; color: #a38d6d; margin-top: -10px;">Paste mentah hasil copy item kamu. Nama & mata uang akan dibaca otomatis.</p>
         <textarea id="rawItemInput" rows="10" placeholder="Paste data item di sini...&#10;&#10;Contoh:&#10;Item Class: Rings&#10;Rarity: Unique&#10;The Sundered Will&#10;Fugitive Ring&#10;...&#10;Note: ~b/o 7 divine"></textarea>
         
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
@@ -445,8 +467,88 @@
         hitungSemuaFarm();
     }
 
-    // --- TAB 2: EQUIPMENT LOGIC (FULL NAME EXTRACTION) ---
-    let equipmentList = [];
+    // --- TAB 2: EQUIPMENT LOGIC (BOOKMARK MULTI-PROFILE) ---
+    let bookmarks = {}; 
+    let activeBookmarkId = "default";
+
+    function initBookmarks() {
+        const savedBookmarks = localStorage.getItem('poe_bookmarks');
+        if (savedBookmarks) {
+            bookmarks = JSON.parse(savedBookmarks);
+        } else {
+            // Migrasi dari format lama atau inisialisasi awal
+            const oldList = localStorage.getItem('equipmentList');
+            bookmarks = {
+                "default": {
+                    name: "Catatan Utama",
+                    items: oldList ? JSON.parse(oldList) : []
+                }
+            };
+            saveBookmarksToStorage();
+        }
+
+        activeBookmarkId = localStorage.getItem('poe_active_bookmark_id') || Object.keys(bookmarks)[0] || "default";
+        renderBookmarkDropdown();
+        renderEquipTable();
+    }
+
+    function saveBookmarksToStorage() {
+        localStorage.setItem('poe_bookmarks', JSON.stringify(bookmarks));
+        localStorage.setItem('poe_active_bookmark_id', activeBookmarkId);
+    }
+
+    function renderBookmarkDropdown() {
+        const select = document.getElementById('bookmarkSelect');
+        select.innerHTML = '';
+
+        for (const [id, bm] of Object.entries(bookmarks)) {
+            const opt = document.createElement('option');
+            opt.value = id;
+            opt.innerText = bm.name;
+            if (id === activeBookmarkId) opt.selected = true;
+            select.appendChild(opt);
+        }
+
+        document.getElementById('currentBookmarkTitle').innerText = `🛡️ ${bookmarks[activeBookmarkId]?.name || 'Catatan Equipment'}`;
+    }
+
+    function switchBookmark(id) {
+        activeBookmarkId = id;
+        saveBookmarksToStorage();
+        document.getElementById('currentBookmarkTitle').innerText = `🛡️ ${bookmarks[activeBookmarkId].name}`;
+        renderEquipTable();
+    }
+
+    function createNewBookmark() {
+        const name = prompt("Masukkan nama catatan/bookmark baru (misal: Build Dual Strike):");
+        if (!name || !name.trim()) return;
+
+        const newId = "bm_" + Date.now();
+        bookmarks[newId] = {
+            name: name.trim(),
+            items: []
+        };
+        activeBookmarkId = newId;
+        saveBookmarksToStorage();
+        renderBookmarkDropdown();
+        renderEquipTable();
+    }
+
+    function deleteCurrentBookmark() {
+        const keys = Object.keys(bookmarks);
+        if (keys.length <= 1) {
+            alert("Kamu harus menyisakan setidaknya 1 catatan!");
+            return;
+        }
+
+        if (confirm(`Yakin ingin menghapus bookmark "${bookmarks[activeBookmarkId].name}"?`)) {
+            delete bookmarks[activeBookmarkId];
+            activeBookmarkId = Object.keys(bookmarks)[0];
+            saveBookmarksToStorage();
+            renderBookmarkDropdown();
+            renderEquipTable();
+        }
+    }
 
     function openModal() {
         document.getElementById('rawItemInput').value = '';
@@ -461,26 +563,22 @@
         const text = document.getElementById('rawItemInput').value.trim();
         if (!text) return;
 
-        // Ambil bagian Header (sebelum garis pemisah -------- pertama)
         const headerBlock = text.split(/--------/)[0] || text;
         const lines = headerBlock.split('\n').map(l => l.trim()).filter(l => l.length > 0);
         
         let nameLines = [];
         lines.forEach(line => {
-            // Abaikan meta info bawaan poe trade
             if (!line.startsWith("Item Class:") && !line.startsWith("Rarity:")) {
                 nameLines.push(line);
             }
         });
 
-        // Gabungkan seluruh baris nama (misal: "The Sundered Will" + "Fugitive Ring")
         let fullName = nameLines.join(" ");
         if (!fullName) fullName = "Unknown Item";
 
         let divinePrice = 0;
         let chaosPrice = 0;
 
-        // Parse harga dari note
         const priceMatch = text.match(/~b\/o\s+(\d+(?:\.\d+)?)\s+(chaos|divine)/i);
         if (priceMatch) {
             const amount = parseFloat(priceMatch[1]);
@@ -500,23 +598,23 @@
             fullStats: text
         };
 
-        equipmentList.push(newItem);
-        saveEquipData();
+        bookmarks[activeBookmarkId].items.push(newItem);
+        saveBookmarksToStorage();
         renderEquipTable();
         closeModal();
     }
 
     function deleteEquipItem(id) {
-        equipmentList = equipmentList.filter(item => item.id !== id);
-        saveEquipData();
+        bookmarks[activeBookmarkId].items = bookmarks[activeBookmarkId].items.filter(item => item.id !== id);
+        saveBookmarksToStorage();
         renderEquipTable();
     }
 
     function updateEquipValue(id, type, val) {
-        const item = equipmentList.find(i => i.id === id);
+        const item = bookmarks[activeBookmarkId].items.find(i => i.id === id);
         if (item) {
             item[type] = parseFloat(val) || 0;
-            saveEquipData();
+            saveBookmarksToStorage();
             hitungTotalEquip();
         }
     }
@@ -525,7 +623,9 @@
         const tbody = document.getElementById('equipTableBody');
         tbody.innerHTML = '';
 
-        equipmentList.forEach(item => {
+        const currentItems = bookmarks[activeBookmarkId]?.items || [];
+
+        currentItems.forEach(item => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
@@ -551,22 +651,19 @@
     }
 
     function hitungTotalEquip() {
-        let totalDiv = equipmentList.reduce((acc, curr) => acc + (parseFloat(curr.divine) || 0), 0);
-        let totalChaos = equipmentList.reduce((acc, curr) => acc + (parseFloat(curr.chaos) || 0), 0);
+        const currentItems = bookmarks[activeBookmarkId]?.items || [];
+        let totalDiv = currentItems.reduce((acc, curr) => acc + (parseFloat(curr.divine) || 0), 0);
+        let totalChaos = currentItems.reduce((acc, curr) => acc + (parseFloat(curr.chaos) || 0), 0);
         
         document.getElementById('totalEquipCost').innerText = `${totalDiv.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Div  |  ${totalChaos.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Chaos`;
     }
 
     function resetEquipForm() {
-        if (confirm("Yakin ingin menghapus seluruh daftar catatan equipment?")) {
-            equipmentList = [];
-            saveEquipData();
+        if (confirm(`Yakin ingin membersihkan semua item di daftar "${bookmarks[activeBookmarkId].name}"?`)) {
+            bookmarks[activeBookmarkId].items = [];
+            saveBookmarksToStorage();
             renderEquipTable();
         }
-    }
-
-    function saveEquipData() {
-        localStorage.setItem('equipmentList', JSON.stringify(equipmentList));
     }
 
     function escapeHtml(text) {
@@ -600,13 +697,8 @@
             if (localStorage.getItem(`lf_price_${i}`)) document.getElementById(`lf_price_${i}`).value = localStorage.getItem(`lf_price_${i}`);
         }
 
-        // Restore Equipment
-        const savedEquip = localStorage.getItem('equipmentList');
-        if (savedEquip) {
-            equipmentList = JSON.parse(savedEquip);
-            renderEquipTable();
-        }
-
+        // Initialize Equipment Bookmarks
+        initBookmarks();
         hitungSemuaFarm();
     }
 
