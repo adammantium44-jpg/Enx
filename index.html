@@ -259,6 +259,24 @@
             .summary-divider-v { display: none; }
             .summary-container { flex-direction: column; }
         }
+
+        /* WRAPPER TABEL DENGAN SCROLL */
+        .equip-table-container {
+            max-height: 400px; /* Batas tinggi tabel sebelum scroll muncul */
+            overflow-y: auto;
+            border: 1px solid #3d3122;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        
+        /* Sticky Header agar judul kolom tetap terlihat saat discroll */
+        .equip-table th {
+            position: sticky;
+            top: 0;
+            background-color: #0b0c0e;
+            z-index: 10;
+            box-shadow: 0 1px 0 #3d3122;
+        }
     </style>
 </head>
 <body>
@@ -334,6 +352,7 @@
                 <button class="btn-action" onclick="openInputModal()">+ Tambah Item</button>
             </div>
 
+            <div class="equip-table-container">
             <table class="equip-table">
                 <thead>
                     <tr>
@@ -347,6 +366,7 @@
                     <!-- Data dimasukkan secara dinamis -->
                 </tbody>
             </table>
+            </div>
         </div>
 
         <div class="summary-container">
