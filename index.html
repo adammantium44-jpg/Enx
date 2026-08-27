@@ -184,12 +184,60 @@
             flex-wrap: wrap;
         }
 
-        .equip-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        /* Total badge di pojok kanan baris bookmark */
+        .top-total-badge {
+            margin-left: auto;
+            background-color: #181a20;
+            border: 1px solid #af6025;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .top-total-badge:hover {
+            background-color: #242832;
+        }
+
+        .top-total-title {
+            color: #a38d6d;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .top-total-val {
+            color: #ff4d4d;
+            font-weight: bold;
+            font-size: 0.95em;
+        }
+
+        .equip-table-container {
+            max-height: 380px;
+            overflow-y: auto;
+            border: 1px solid #3d3122;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+
+        .equip-table { width: 100%; border-collapse: collapse; }
         .equip-table th, .equip-table td { border: 1px solid #3d3122; padding: 10px; text-align: left; }
-        .equip-table th { background-color: #0b0c0e; color: #a38d6d; font-size: 0.9em; }
+        
+        .equip-table th { 
+            background-color: #0b0c0e; 
+            color: #a38d6d; 
+            font-size: 0.9em; 
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            box-shadow: 0 1px 0 #3d3122;
+        }
+
         .equip-table tr:nth-child(even) { background-color: #0f1014; }
 
-        /* ITEM CLICK STYLING */
         .item-clickable-name {
             color: #af6025;
             font-weight: bold;
@@ -238,7 +286,6 @@
             box-shadow: 0 0 20px rgba(0,0,0,0.8);
         }
 
-        /* DETAIL ITEM MODAL */
         .item-detail-content {
             background-color: #000000;
             border: 2px solid #7b6241;
@@ -258,24 +305,7 @@
             .grid-container { flex-direction: column; }
             .summary-divider-v { display: none; }
             .summary-container { flex-direction: column; }
-        }
-
-        /* WRAPPER TABEL DENGAN SCROLL */
-        .equip-table-container {
-            max-height: 400px; /* Batas tinggi tabel sebelum scroll muncul */
-            overflow-y: auto;
-            border: 1px solid #3d3122;
-            border-radius: 4px;
-            margin-top: 10px;
-        }
-        
-        /* Sticky Header agar judul kolom tetap terlihat saat discroll */
-        .equip-table th {
-            position: sticky;
-            top: 0;
-            background-color: #0b0c0e;
-            z-index: 10;
-            box-shadow: 0 1px 0 #3d3122;
+            .top-total-badge { margin-left: 0; width: 100%; justify-content: space-between; }
         }
     </style>
 </head>
@@ -336,43 +366,43 @@
 
     <!-- TAB 2: BELANJA EQUIPMENT -->
     <div id="equipTab" class="tab-content">
-        <!-- BOOKMARK MANAGEMENT BAR -->
+        <!-- BOOKMARK MANAGEMENT BAR BARIS ATAS -->
         <div class="bookmark-bar">
-            <span style="font-weight: bold; color: #a38d6d;">📌 Bookmark Catatan:</span>
-            <select id="bookmarkSelect" onchange="switchBookmark(this.value)" style="flex: 1; max-width: 250px;">
+            <span style="font-weight: bold; color: #a38d6d;">📌 Bookmark:</span>
+            <select id="bookmarkSelect" onchange="switchBookmark(this.value)" style="flex: 1; max-width: 200px;">
                 <!-- Auto populate -->
             </select>
-            <button class="btn-action" onclick="createNewBookmark()" style="padding: 6px 12px; font-size: 0.85em;">+ Buat Baru</button>
-            <button class="btn-delete" onclick="deleteCurrentBookmark()" style="padding: 7px 12px; font-size: 0.85em;">Hapus Daftar Ini</button>
+            <button class="btn-action" onclick="createNewBookmark()" style="padding: 6px 10px; font-size: 0.85em;">+ Baru</button>
+            <button class="btn-delete" onclick="deleteCurrentBookmark()" style="padding: 7px 10px; font-size: 0.85em;">Hapus</button>
+            
+            <!-- TOTAL BIAYA DI POJOK KANAN SEBARIS -->
+            <div class="top-total-badge" onclick="openTotalModal()" title="Klik untuk rincian detail total">
+                <span class="top-total-title">Total:</span>
+                <span class="top-total-val" id="totalEquipCostTop">0 Div | 0 c</span>
+                <span style="font-size: 0.8em; color: #af6025;">🔍</span>
+            </div>
         </div>
 
-        <div class="column-box" style="margin-bottom: 20px;">
+        <div class="column-box" style="margin-bottom: 10px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h3 style="color: #3498db; margin: 0; border: none;" id="currentBookmarkTitle">🛡️ Catatan Equipment</h3>
                 <button class="btn-action" onclick="openInputModal()">+ Tambah Item</button>
             </div>
 
             <div class="equip-table-container">
-            <table class="equip-table">
-                <thead>
-                    <tr>
-                        <th style="width: 45%;">Nama Item Lengkap (Klik untuk Stats)</th>
-                        <th style="width: 20%;">Divine (div)</th>
-                        <th style="width: 20%;">Chaos (c)</th>
-                        <th style="width: 15%; text-align: center;">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="equipTableBody">
-                    <!-- Data dimasukkan secara dinamis -->
-                </tbody>
-            </table>
-            </div>
-        </div>
-
-        <div class="summary-container">
-            <div class="summary-item">
-                <span class="summary-title">Total Biaya Equipment</span>
-                <span class="val-expense" id="totalEquipCost" style="font-size: 1.4em;">0 Div | 0 Chaos</span>
+                <table class="equip-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 45%;">Nama Item Lengkap (Klik untuk Stats)</th>
+                            <th style="width: 20%;">Divine (div)</th>
+                            <th style="width: 20%;">Chaos (c)</th>
+                            <th style="width: 15%; text-align: center;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="equipTableBody">
+                        <!-- Data dimasukkan secara dinamis -->
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -404,6 +434,31 @@
         <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
             <button class="btn-action" onclick="closeDetailModal()">Tutup</button>
         </div>
+    </div>
+</div>
+
+<!-- MODAL 3: DETAIL SUMMARY TOTAL COST -->
+<div class="modal-overlay" id="totalModal">
+    <div class="modal-box" style="max-width: 400px; text-align: center;">
+        <h3 style="color: #af6025; margin-bottom: 15px;">💰 Rincian Total Biaya</h3>
+        <p style="font-size: 0.9em; color: #a38d6d; margin-top: -10px;" id="totalModalSubtitle">Daftar Equipment</p>
+        
+        <div style="background: #0b0c0e; border: 1px solid #3d3122; padding: 15px; border-radius: 6px; margin: 15px 0;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span style="color: #a38d6d;">Total Divine:</span>
+                <span style="color: #70d6ff; font-weight: bold;" id="modalTotalDiv">0 Div</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span style="color: #a38d6d;">Total Chaos:</span>
+                <span style="color: #ffd166; font-weight: bold;" id="modalTotalChaos">0 Chaos</span>
+            </div>
+            <div style="border-top: 1px dashed #3d3122; padding-top: 10px; display: flex; justify-content: space-between;">
+                <span style="color: #a38d6d;">Jumlah Item:</span>
+                <span style="color: #fff; font-weight: bold;" id="modalTotalItems">0 Item</span>
+            </div>
+        </div>
+        
+        <button class="btn-action" onclick="closeTotalModal()" style="width: 100%;">Tutup</button>
     </div>
 </div>
 
@@ -602,6 +657,23 @@
         document.getElementById('detailModal').style.display = 'none';
     }
 
+    function openTotalModal() {
+        const currentItems = bookmarks[activeBookmarkId]?.items || [];
+        let totalDiv = currentItems.reduce((acc, curr) => acc + (parseFloat(curr.divine) || 0), 0);
+        let totalChaos = currentItems.reduce((acc, curr) => acc + (parseFloat(curr.chaos) || 0), 0);
+
+        document.getElementById('totalModalSubtitle').innerText = bookmarks[activeBookmarkId]?.name || 'Daftar Equipment';
+        document.getElementById('modalTotalDiv').innerText = `${totalDiv.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Div`;
+        document.getElementById('modalTotalChaos').innerText = `${totalChaos.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Chaos`;
+        document.getElementById('modalTotalItems').innerText = `${currentItems.length} Item`;
+
+        document.getElementById('totalModal').style.display = 'flex';
+    }
+
+    function closeTotalModal() {
+        document.getElementById('totalModal').style.display = 'none';
+    }
+
     function addItemFromText() {
         const text = document.getElementById('rawItemInput').value.trim();
         if (!text) return;
@@ -697,7 +769,7 @@
         let totalDiv = currentItems.reduce((acc, curr) => acc + (parseFloat(curr.divine) || 0), 0);
         let totalChaos = currentItems.reduce((acc, curr) => acc + (parseFloat(curr.chaos) || 0), 0);
         
-        document.getElementById('totalEquipCost').innerText = `${totalDiv.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Div  |  ${totalChaos.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Chaos`;
+        document.getElementById('totalEquipCostTop').innerText = `${totalDiv.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Div | ${totalChaos.toLocaleString('id-ID', { maximumFractionDigits: 2 })} c`;
     }
 
     function resetEquipForm() {
