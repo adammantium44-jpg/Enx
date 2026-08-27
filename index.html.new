@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POE Helper Tool with Live Market</title>
+    <style>
+        body {
+            background-color: #0b0c0e;
+            color: #c8c8c8;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .calculator-card {
+            background-color: #181a20;
+            border: 2px solid #5a4831;
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.9);
+            width: 100%;
+            max-width: 1100px;
+            padding: 25px;
+            box-sizing: border-box;
+        }
+
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #332619;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        h2 {
+            color: #af6025;
+            margin: 0;
+            text-shadow: 0 0 8px rgba(175, 96, 37, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .market-sync-box {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background-color: #0b0c0e;
+            padding: 6px 14px;
+            border-radius: 6px;
+            border: 1px solid #3d3122;
+        }
+
+        .rate-status {
+            font-size: 0.85em;
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        /* --- TAB NAVIGATION --- */
+        .tab-menu {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #332619;
+        }
+
+        .tab-btn {
+            background-color: #12141a;
+            color: #a38d6d;
+            border: 1px solid #3d3122;
+            border-bottom: none;
+            padding: 10px 20px;
+            font-size: 0.95em;
+            font-weight: bold;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn:hover { background-color: #242832; color: #fff; }
+        .tab-btn.active { background-color: #af6025; color: #fff; border-color: #af6025; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Grid Farming */
+        .grid-container { display: flex; gap: 25px; margin-bottom: 20px; }
+        .column-box { flex: 1; background-color: #12141a; border: 1px solid #3d3122; border-radius: 6px; padding: 18px; box-sizing: border-box; }
+
+        h3 {
+            font-size: 1.1em;
+            margin-top: 0;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #282017;
+            padding-bottom: 8px;
+        }
+
+        .expense-title { color: #ff6b6b; }
+        .income-title { color: #2ecc71; }
+
+        .table-header {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #a38d6d;
+            font-size: 0.85em;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #282017;
+        }
+
+        .row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+        .col-name { flex: 2; }
+        .col-qty { flex: 0.9; }
+        .col-ratio { flex: 1; }
+        .col-price { flex: 1.1; }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 8px 10px;
+            background-color: #0b0c0e;
+            border: 1px solid #3d3122;
+            color: #e0e0e0;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 0.9em;
+        }
+
+        input[readonly] { background-color: #181a20; color: #af6025; border-color: #2a2218; font-weight: bold; cursor: not-allowed; }
+        input:focus:not([readonly]), textarea:focus, select:focus { outline: none; border-color: #af6025; box-shadow: 0 0 5px rgba(175, 96, 37, 0.5); }
+
+        .wild { color: #e040fb !important; }
+        .vivid { color: #ffd700 !important; }
+        .primal { color: #00e5ff !important; }
+
+        /* Banner Summary */
+        .summary-container {
+            background-color: #0b0c0e;
+            border: 1px solid #3d3122;
+            border-radius: 6px;
+            padding: 18px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .summary-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .summary-title { color: #a38d6d; font-size: 0.9em; font-weight: bold; text-transform: uppercase; }
+        .val-expense { color: #ff4d4d; font-size: 1.25em; font-weight: bold; }
+        .val-income { color: #2ecc71; font-size: 1.25em; font-weight: bold; }
+        .summary-divider-v { width: 1px; height: 40px; background-color: #332619; }
+        .profit-title { color: #e5b158; font-size: 0.95em; font-weight: bold; text-transform: uppercase; }
+        .val-profit { font-size: 1.45em; font-weight: bold; color: #2ecc71; text-shadow: 0 0 5px rgba(46, 204, 113, 0.3); }
+        .val-loss { color: #ff4d4d !important; text-shadow: 0 0 5px rgba(255, 77, 77, 0.3) !important; }
+
+        .btn-action {
+            padding: 8px 16px;
+            background: linear-gradient(to bottom, #af6025, #6e3710);
+            border: 1px solid #8c491b;
+            color: #fff;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-action:hover { background: linear-gradient(to bottom, #d6752d, #af6025); }
+
+        .btn-reset {
+            margin-top: 15px;
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(to bottom, #4a210d, #2d1408);
+            border: 1px solid #7e3e1b;
+            color: #a38d6d;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-reset:hover { background: linear-gradient(to bottom, #7e3e1b, #4a210d); color: #fff; }
+
+        /* --- EQUIPMENT TAB STYLING --- */
+        .bookmark-bar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background-color: #0b0c0e;
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: 1px solid #3d3122;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .top-total-badge {
+            margin-left: auto;
+            background-color: #181a20;
+            border: 1px solid #af6025;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .top-total-badge:hover { background-color: #242832; }
+        .top-total-title { color: #a38d6d; font-size: 0.8em; font-weight: bold; text-transform: uppercase; }
+        .top-total-val { color: #ff4d4d; font-weight: bold; font-size: 0.95em; }
+
+        .equip-table-container {
+            max-height: 380px;
+            overflow-y: auto;
+            border: 1px solid #3d3122;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+
+        .equip-table { width: 100%; border-collapse: collapse; }
+        .equip-table th, .equip-table td { border: 1px solid #3d3122; padding: 10px; text-align: left; }
+        
+        .equip-table th { 
+            background-color: #0b0c0e; 
+            color: #a38d6d; 
+            font-size: 0.9em; 
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            box-shadow: 0 1px 0 #3d3122;
+        }
+
+        .equip-table tr:nth-child(even) { background-color: #0f1014; }
+
+        .item-clickable-name {
+            color: #af6025;
+            font-weight: bold;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.2s;
+        }
+
+        .item-clickable-name:hover { color: #d6752d; text-decoration: underline; }
+
+        .btn-delete {
+            background-color: #c0392b;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+
+        .btn-delete:hover { background-color: #e74c3c; }
+
+        /* MODAL GENERAL */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-box {
+            background-color: #181a20;
+            border: 2px solid #5a4831;
+            width: 90%;
+            max-width: 500px;
+            padding: 20px;
+            border-radius: 6px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+
+        .item-detail-content {
+            background-color: #000000;
+            border: 2px solid #7b6241;
+            border-radius: 4px;
+            padding: 15px;
+            color: #7f7f7f;
+            font-family: FontinSmallCaps, Verdana, Arial, Helvetica, sans-serif;
+            font-size: 0.9em;
+            white-space: pre-wrap;
+            max-height: 350px;
+            overflow-y: auto;
+            margin-top: 10px;
+            line-height: 1.4;
+        }
+
+        @media (max-width: 850px) {
+            .grid-container { flex-direction: column; }
+            .summary-divider-v { display: none; }
+            .summary-container { flex-direction: column; }
+            .top-total-badge { margin-left: 0; width: 100%; justify-content: space-between; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="calculator-card">
+    <div class="header-bar">
+        <h2>POE Helper Tool</h2>
+        <div class="market-sync-box">
+            <span class="rate-status" id="divineRateDisplay">1 Div = -- c</span>
+            <button class="btn-action" style="padding: 4px 10px; font-size: 0.8em;" onclick="fetchMarketRates()">🔄 Sync Market Rate</button>
+        </div>
+    </div>
+
+    <div class="tab-menu">
+        <button class="tab-btn active" id="btn_farmTab" onclick="switchTab('farmTab', this)">🌾 Harvest Farming</button>
+        <button class="tab-btn" id="btn_equipTab" onclick="switchTab('equipTab', this)">⚔️ Belanja Equipment</button>
+    </div>
+
+    <!-- TAB 1: HARVEST FARMING -->
+    <div id="farmTab" class="tab-content active">
+        <div class="grid-container">
+            <div class="column-box">
+                <h3 class="expense-title">💸 Modal Dikeluarkan</h3>
+                <div class="table-header">
+                    <div class="col-name">Nama Item</div>
+                    <div class="col-qty">Qty</div>
+                    <div class="col-price">Total (Chaos)</div>
+                </div>
+                <div id="itemRows"></div>
+            </div>
+
+            <div class="column-box">
+                <h3 class="income-title">🌾 Hasil Farm (Lifeforce)</h3>
+                <div class="table-header">
+                    <div class="col-name">Tipe Lifeforce</div>
+                    <div class="col-qty">Qty LF</div>
+                    <div class="col-ratio">Rasio (1c:LF)</div>
+                    <div class="col-price">Hasil (Chaos)</div>
+                </div>
+                <div id="lifeforceRows"></div>
+            </div>
+        </div>
+
+        <div class="summary-container">
+            <div class="summary-item">
+                <span class="summary-title">Total Modal</span>
+                <span class="val-expense" id="totalExpense">0 Chaos</span>
+            </div>
+            <div class="summary-divider-v"></div>
+            <div class="summary-item">
+                <span class="summary-title">Total Hasil Farm</span>
+                <span class="val-income" id="totalIncome">0 Chaos</span>
+            </div>
+            <div class="summary-divider-v"></div>
+            <div class="summary-item">
+                <span class="profit-title">Laba / Profit Bersih</span>
+                <span class="val-profit" id="netProfit">0 Chaos</span>
+            </div>
+        </div>
+
+        <button class="btn-reset" onclick="resetFarmForm()">Reset Farming Form</button>
+    </div>
+
+    <!-- TAB 2: BELANJA EQUIPMENT -->
+    <div id="equipTab" class="tab-content">
+        <div class="bookmark-bar">
+            <span style="font-weight: bold; color: #a38d6d;">📌 Bookmark:</span>
+            <select id="bookmarkSelect" onchange="switchBookmark(this.value)" style="flex: 1; max-width: 200px;">
+                <!-- Auto populate -->
+            </select>
+            <button class="btn-action" onclick="createNewBookmark()" style="padding: 6px 10px; font-size: 0.85em;">+ Baru</button>
+            <button class="btn-delete" onclick="deleteCurrentBookmark()" style="padding: 7px 10px; font-size: 0.85em;">Hapus</button>
+            
+            <div class="top-total-badge" onclick="openTotalModal()" title="Klik untuk rincian detail total">
+                <span class="top-total-title">Total:</span>
+                <span class="top-total-val" id="totalEquipCostTop">0 Div | 0 c</span>
+                <span style="font-size: 0.8em; color: #af6025;">🔍</span>
+            </div>
+        </div>
+
+        <div class="column-box" style="margin-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="color: #3498db; margin: 0; border: none;" id="currentBookmarkTitle">🛡️ Catatan Equipment</h3>
+                <button class="btn-action" onclick="openInputModal()">+ Tambah Item</button>
+            </div>
+
+            <div class="equip-table-container">
+                <table class="equip-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 45%;">Nama Item Lengkap (Klik untuk Stats)</th>
+                            <th style="width: 20%;">Divine (div)</th>
+                            <th style="width: 20%;">Chaos (c)</th>
+                            <th style="width: 15%; text-align: center;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="equipTableBody">
+                        <!-- Data dimasukkan secara dinamis -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <button class="btn-reset" onclick="resetEquipForm()">Clear Semua Item di Daftar Ini</button>
+    </div>
+
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="inputModal">
+    <div class="modal-box">
+        <h3 style="color: #af6025;">Paste Text dari PoE Trade</h3>
+        <p style="font-size: 0.8em; color: #a38d6d; margin-top: -10px;">Paste mentah hasil copy item kamu. Nama & mata uang akan dibaca otomatis.</p>
+        <textarea id="rawItemInput" rows="10" placeholder="Paste data item di sini..."></textarea>
+        
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+            <button class="btn-reset" style="margin: 0; width: auto; background: #333;" onclick="closeInputModal()">Batal</button>
+            <button class="btn-action" onclick="addItemFromText()">Proses & Simpan</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="detailModal">
+    <div class="modal-box" style="max-width: 550px;">
+        <h3 style="color: #af6025; margin-bottom: 5px;" id="detailItemTitle">Detail Item</h3>
+        <div class="item-detail-content" id="detailItemText"></div>
+        <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
+            <button class="btn-action" onclick="closeDetailModal()">Tutup</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="totalModal">
+    <div class="modal-box" style="max-width: 400px; text-align: center;">
+        <h3 style="color: #af6025; margin-bottom: 15px;">💰 Rincian Total Biaya</h3>
+        <p style="font-size: 0.9em; color: #a38d6d; margin-top: -10px;" id="totalModalSubtitle">Daftar Equipment</p>
+        
+        <div style="background: #0b0c0e; border: 1px solid #3d3122; padding: 15px; border-radius: 6px; margin: 15px 0;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span style="color: #a38d6d;">Total Divine:</span>
+                <span style="color: #70d6ff; font-weight: bold;" id="modalTotalDiv">0 Div</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span style="color: #a38d6d;">Total Chaos:</span>
+                <span style="color: #ffd166; font-weight: bold;" id="modalTotalChaos">0 Chaos</span>
+            </div>
+            <div style="border-top: 1px dashed #3d3122; padding-top: 10px; display: flex; justify-content: space-between;">
+                <span style="color: #a38d6d;">Estimasi Total (dalam Chaos):</span>
+                <span style="color: #2ecc71; font-weight: bold;" id="modalTotalInChaos">0 c</span>
+            </div>
+        </div>
+        
+        <button class="btn-action" onclick="closeTotalModal()" style="width: 100%;">Tutup</button>
+    </div>
+</div>
+
+<script>
+    let currentDivinePrice = 150; // Fallback default rate
+
+    // --- POE.NINJA API FETCH ---
+    async function fetchMarketRates() {
+        const proxyUrl = "https://corsproxy.io/?";
+        const apiUrl = "https://poe.ninja/api/data/currencyoverview?league=Standard&type=Currency";
+
+        document.getElementById('divineRateDisplay').innerText = "Syncing...";
+
+        try {
+            const response = await fetch(proxyUrl + encodeURIComponent(apiUrl));
+            const data = await response.json();
+            const lines = data.lines;
+
+            // Update Divine Price
+            const divineData = lines.find(item => item.currencyTypeName === 'Divine Orb');
+            if (divineData) {
+                currentDivinePrice = Math.round(divineData.chaosEquivalent);
+                document.getElementById('divineRateDisplay').innerText = `1 Div = ${currentDivinePrice} c`;
+            }
+
+            // Update Lifeforce Ratios
+            const lfMap = {
+                1: 'Wild Lifeforce',
+                2: 'Vivid Lifeforce',
+                3: 'Primal Lifeforce',
+                4: 'Sacred Lifeforce'
+            };
+
+            for (let i = 1; i <= 4; i++) {
+                const lfItem = lines.find(item => item.currencyTypeName === lfMap[i]);
+                if (lfItem && lfItem.chaosEquivalent > 0) {
+                    const ratio = (1 / lfItem.chaosEquivalent).toFixed(1);
+                    document.getElementById(`lf_ratio_${i}`).value = ratio;
+                    hitungLifeforce(i);
+                }
+            }
+
+            hitungTotalEquip();
+        } catch (error) {
+            console.error("Gagal sync poe.ninja:", error);
+            document.getElementById('divineRateDisplay').innerText = `1 Div = ${currentDivinePrice} c (Offline)`;
+        }
+    }
+
+    // --- NAVIGASI TAB ---
+    function switchTab(tabId, btnElement) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        btnElement.classList.add('active');
+        localStorage.setItem('activeTab', tabId);
+    }
+
+    // --- TAB 1: HARVEST FARMING LOGIC ---
+    const fixedItems = ["Scarab of Monstrous Lineage", "Sacrifice of Dust", "Sacrifice of Noon", "Sacrifice of Midnight", "Sacrifice of Dawn", "MAP"];
+    const lifeforceItems = [
+        { name: "Wild Lifeforce", class: "wild" },
+        { name: "Vivid Lifeforce", class: "vivid" },
+        { name: "Primal Lifeforce", class: "primal" },
+        { name: "Sacred Lifeforce", class: "vivid" }
+    ];
+
+    const container = document.getElementById('itemRows');
+    const lfContainer = document.getElementById('lifeforceRows');
+
+    fixedItems.forEach((itemName, index) => {
+        const i = index + 1;
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.innerHTML = `
+            <div class="col-name"><input type="text" id="name_${i}" value="${itemName}" readonly></div>
+            <div class="col-qty"><input type="number" id="qty_${i}" placeholder="Qty" min="0" oninput="saveData('qty_${i}')"></div>
+            <div class="col-price"><input type="number" id="price_${i}" placeholder="0 c" min="0" step="any" oninput="hitungSemuaFarm(); saveData('price_${i}')"></div>
+        `;
+        container.appendChild(row);
+    });
+
+    lifeforceItems.forEach((lf, index) => {
+        const i = index + 1;
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.innerHTML = `
+            <div class="col-name"><input type="text" value="${lf.name}" class="${lf.class}" readonly></div>
+            <div class="col-qty"><input type="number" id="lf_qty_${i}" placeholder="Qty" min="0" oninput="hitungLifeforce(${i}); saveData('lf_qty_${i}')"></div>
+            <div class="col-ratio"><input type="number" id="lf_ratio_${i}" placeholder="Rasio" min="0" step="any" oninput="hitungLifeforce(${i}); saveData('lf_ratio_${i}')"></div>
+            <div class="col-price"><input type="number" id="lf_price_${i}" placeholder="0 c" min="0" step="any" oninput="hitungSemuaFarm(); saveData('lf_price_${i}')"></div>
+        `;
+        lfContainer.appendChild(row);
+    });
+
+    function hitungLifeforce(index) {
+        const qty = parseFloat(document.getElementById(`lf_qty_${index}`).value) || 0;
+        const ratio = parseFloat(document.getElementById(`lf_ratio_${index}`).value) || 0;
+        const priceInput = document.getElementById(`lf_price_${index}`);
+
+        if (ratio > 0 && qty > 0) {
+            priceInput.value = (qty / ratio).toFixed(2);
+        } else {
+            priceInput.value = '';
+        }
+        saveData(`lf_price_${index}`);
+        hitungSemuaFarm();
+    }
+
+    function hitungSemuaFarm() {
+        let modal = 0, hasil = 0;
+        for (let i = 1; i <= fixedItems.length; i++) modal += parseFloat(document.getElementById(`price_${i}`).value) || 0;
+        for (let i = 1; i <= lifeforceItems.length; i++) hasil += parseFloat(document.getElementById(`lf_price_${i}`).value) || 0;
+
+        const profit = hasil - modal;
+        document.getElementById('totalExpense').innerText = `${modal.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Chaos`;
+        document.getElementById('totalIncome').innerText = `${hasil.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Chaos`;
+
+        const profitElem = document.getElementById('netProfit');
+        profitElem.innerText = `${profit.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Chaos`;
+        if (profit < 0) profitElem.classList.add('val-loss');
+        else profitElem.classList.remove('val-loss');
+    }
+
+    function resetFarmForm() {
+        for (let i = 1; i <= fixedItems.length; i++) {
+            document.getElementById(`qty_${i}`).value = '';
+            document.getElementById(`price_${i}`).value = '';
+            removeData(`qty_${i}`); removeData(`price_${i}`);
+        }
+        for (let i = 1; i <= lifeforceItems.length; i++) {
+            document.getElementById(`lf_qty_${i}`).value = '';
+            document.getElementById(`lf_ratio_${i}`).value = '';
+            document.getElementById(`lf_price_${i}`).value = '';
+            removeData(`lf_qty_${i}`); removeData(`lf_ratio_${i}`); removeData(`lf_price_${i}`);
+        }
+        hitungSemuaFarm();
+    }
+
+    // --- TAB 2: EQUIPMENT LOGIC ---
+    let bookmarks = {}; 
+    let activeBookmarkId = "default";
+
+    function initBookmarks() {
+        const savedBookmarks = localStorage.getItem('poe_bookmarks');
+        if (savedBookmarks) {
+            bookmarks = JSON.parse(savedBookmarks);
+        } else {
+            const oldList = localStorage.getItem('equipmentList');
+            bookmarks = {
+                "default": { name: "Catatan Utama", items: oldList ? JSON.parse(oldList) : [] }
+            };
+            saveBookmarksToStorage();
+        }
+
+        activeBookmarkId = localStorage.getItem('poe_active_bookmark_id') || Object.keys(bookmarks)[0] || "default";
+        renderBookmarkDropdown();
+        renderEquipTable();
+    }
+
+    function saveBookmarksToStorage() {
+        localStorage.setItem('poe_bookmarks', JSON.stringify(bookmarks));
+        localStorage.setItem('poe_active_bookmark_id', activeBookmarkId);
+    }
+
+    function renderBookmarkDropdown() {
+        const select = document.getElementById('bookmarkSelect');
+        select.innerHTML = '';
+
+        for (const [id, bm] of Object.entries(bookmarks)) {
+            const opt = document.createElement('option');
+            opt.value = id;
+            opt.innerText = bm.name;
+            if (id === activeBookmarkId) opt.selected = true;
+            select.appendChild(opt);
+        }
+
+        document.getElementById('currentBookmarkTitle').innerText = `🛡️ ${bookmarks[activeBookmarkId]?.name || 'Catatan Equipment'}`;
+    }
+
+    function switchBookmark(id) {
+        activeBookmarkId = id;
+        saveBookmarksToStorage();
+        document.getElementById('currentBookmarkTitle').innerText = `🛡️ ${bookmarks[activeBookmarkId].name}`;
+        renderEquipTable();
+    }
+
+    function createNewBookmark() {
+        const name = prompt("Masukkan nama catatan/bookmark baru:");
+        if (!name || !name.trim()) return;
+
+        const newId = "bm_" + Date.now();
+        bookmarks[newId] = { name: name.trim(), items: [] };
+        activeBookmarkId = newId;
+        saveBookmarksToStorage();
+        renderBookmarkDropdown();
+        renderEquipTable();
+    }
+
+    function deleteCurrentBookmark() {
+        if (Object.keys(bookmarks).length <= 1) return alert("Harus menyisakan minimal 1 catatan!");
+        if (confirm(`Hapus bookmark "${bookmarks[activeBookmarkId].name}"?`)) {
+            delete bookmarks[activeBookmarkId];
+            activeBookmarkId = Object.keys(bookmarks)[0];
+            saveBookmarksToStorage();
+            renderBookmarkDropdown();
+            renderEquipTable();
+        }
+    }
+
+    function openInputModal() { document.getElementById('rawItemInput').value = ''; document.getElementById('inputModal').style.display = 'flex'; }
+    function closeInputModal() { document.getElementById('inputModal').style.display = 'none'; }
+    
+    function openDetailModal(itemId) {
+        const item = bookmarks[activeBookmarkId]?.items.find(i => i.id === itemId);
+        if (item) {
+            document.getElementById('detailItemTitle').innerText = item.name;
+            document.getElementById('detailItemText').innerText = item.fullStats;
+            document.getElementById('detailModal').style.display = 'flex';
+        }
+    }
+    function closeDetailModal() { document.getElementById('detailModal').style.display = 'none'; }
+
+    function openTotalModal() {
+        const items = bookmarks[activeBookmarkId]?.items || [];
+        let totalDiv = items.reduce((acc, curr) => acc + (parseFloat(curr.divine) || 0), 0);
+        let totalChaos = items.reduce((acc, curr) => acc + (parseFloat(curr.chaos) || 0), 0);
+        let grandTotalChaos = (totalDiv * currentDivinePrice) + totalChaos;
+
+        document.getElementById('totalModalSubtitle').innerText = bookmarks[activeBookmarkId]?.name || 'Equipment';
+        document.getElementById('modalTotalDiv').innerText = `${totalDiv.toLocaleString('id-ID')} Div`;
+        document.getElementById('modalTotalChaos').innerText = `${totalChaos.toLocaleString('id-ID')} Chaos`;
+        document.getElementById('modalTotalInChaos').innerText = `${grandTotalChaos.toLocaleString('id-ID')} c`;
+
+        document.getElementById('totalModal').style.display = 'flex';
+    }
+    function closeTotalModal() { document.getElementById('totalModal').style.display = 'none'; }
+
+    function addItemFromText() {
+        const text = document.getElementById('rawItemInput').value.trim();
+        if (!text) return;
+
+        const headerBlock = text.split(/--------/)[0] || text;
+        const lines = headerBlock.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        
+        let nameLines = lines.filter(line => !line.startsWith("Item Class:") && !line.startsWith("Rarity:"));
+        let fullName = nameLines.join(" ") || "Unknown Item";
+
+        let divinePrice = 0, chaosPrice = 0;
+        const priceMatch = text.match(/~b\/o\s+(\d+(?:\.\d+)?)\s+(chaos|divine)/i);
+        if (priceMatch) {
+            const amount = parseFloat(priceMatch[1]);
+            if (priceMatch[2].toLowerCase() === 'divine') divinePrice = amount;
+            else chaosPrice = amount;
+        }
+
+        bookmarks[activeBookmarkId].items.push({
+            id: Date.now(), name: fullName, divine: divinePrice, chaos: chaosPrice, fullStats: text
+        });
+
+        saveBookmarksToStorage();
+        renderEquipTable();
+        closeInputModal();
+    }
+
+    function deleteEquipItem(id) {
+        bookmarks[activeBookmarkId].items = bookmarks[activeBookmarkId].items.filter(item => item.id !== id);
+        saveBookmarksToStorage();
+        renderEquipTable();
+    }
+
+    function updateEquipValue(id, type, val) {
+        const item = bookmarks[activeBookmarkId].items.find(i => i.id === id);
+        if (item) {
+            item[type] = parseFloat(val) || 0;
+            saveBookmarksToStorage();
+            hitungTotalEquip();
+        }
+    }
+
+    function renderEquipTable() {
+        const tbody = document.getElementById('equipTableBody');
+        tbody.innerHTML = '';
+        const items = bookmarks[activeBookmarkId]?.items || [];
+
+        items.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>
+                    <div class="item-clickable-name" onclick="openDetailModal(${item.id})">
+                        <span>👁️ ${escapeHtml(item.name)}</span>
+                    </div>
+                </td>
+                <td><input type="number" value="${item.divine || ''}" placeholder="0 div" step="any" oninput="updateEquipValue(${item.id}, 'divine', this.value)"></td>
+                <td><input type="number" value="${item.chaos || ''}" placeholder="0 c" step="any" oninput="updateEquipValue(${item.id}, 'chaos', this.value)"></td>
+                <td style="text-align: center;"><button class="btn-delete" onclick="deleteEquipItem(${item.id})">Hapus</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        hitungTotalEquip();
+    }
+
+    function hitungTotalEquip() {
+        const items = bookmarks[activeBookmarkId]?.items || [];
+        let totalDiv = items.reduce((acc, curr) => acc + (parseFloat(curr.divine) || 0), 0);
+        let totalChaos = items.reduce((acc, curr) => acc + (parseFloat(curr.chaos) || 0), 0);
+        document.getElementById('totalEquipCostTop').innerText = `${totalDiv.toLocaleString('id-ID')} Div | ${totalChaos.toLocaleString('id-ID')} c`;
+    }
+
+    function resetEquipForm() {
+        if (confirm(`Clear semua item di "${bookmarks[activeBookmarkId].name}"?`)) {
+            bookmarks[activeBookmarkId].items = [];
+            saveBookmarksToStorage();
+            renderEquipTable();
+        }
+    }
+
+    function escapeHtml(text) { return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+    function saveData(id) { localStorage.setItem(id, document.getElementById(id).value); }
+    function removeData(id) { localStorage.removeItem(id); }
+
+    function loadData() {
+        const activeTab = localStorage.getItem('activeTab');
+        if (activeTab && document.getElementById(`btn_${activeTab}`)) {
+            switchTab(activeTab, document.getElementById(`btn_${activeTab}`));
+        }
+
+        for (let i = 1; i <= fixedItems.length; i++) {
+            if (localStorage.getItem(`qty_${i}`)) document.getElementById(`qty_${i}`).value = localStorage.getItem(`qty_${i}`);
+            if (localStorage.getItem(`price_${i}`)) document.getElementById(`price_${i}`).value = localStorage.getItem(`price_${i}`);
+        }
+        for (let i = 1; i <= lifeforceItems.length; i++) {
+            if (localStorage.getItem(`lf_qty_${i}`)) document.getElementById(`lf_qty_${i}`).value = localStorage.getItem(`lf_qty_${i}`);
+            if (localStorage.getItem(`lf_ratio_${i}`)) document.getElementById(`lf_ratio_${i}`).value = localStorage.getItem(`lf_ratio_${i}`);
+            if (localStorage.getItem(`lf_price_${i}`)) document.getElementById(`lf_price_${i}`).value = localStorage.getItem(`lf_price_${i}`);
+        }
+
+        initBookmarks();
+        hitungSemuaFarm();
+        fetchMarketRates();
+    }
+
+    window.onload = loadData;
+</script>
+
+</body>
+</html>
