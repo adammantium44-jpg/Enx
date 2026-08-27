@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>POE Helper Tool with Live Market</title>
+    <title>POE Helper Tool with Item Links</title>
     <style>
         body {
             background-color: #0b0c0e;
@@ -259,6 +259,20 @@
 
         .item-clickable-name:hover { color: #d6752d; text-decoration: underline; }
 
+        .btn-link {
+            background-color: #2980b9;
+            color: white;
+            text-decoration: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            display: inline-block;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .btn-link:hover { background-color: #3498db; }
+        .btn-link-empty { background-color: #333; color: #777; cursor: not-allowed; }
+
         .btn-delete {
             background-color: #c0392b;
             color: white;
@@ -403,10 +417,11 @@
                 <table class="equip-table">
                     <thead>
                         <tr>
-                            <th style="width: 45%;">Nama Item Lengkap (Klik untuk Stats)</th>
-                            <th style="width: 20%;">Divine (div)</th>
-                            <th style="width: 20%;">Chaos (c)</th>
-                            <th style="width: 15%; text-align: center;">Aksi</th>
+                            <th style="width: 35%;">Nama Item (Klik untuk Stats)</th>
+                            <th style="width: 15%;">Link Trade</th>
+                            <th style="width: 18%;">Divine (div)</th>
+                            <th style="width: 18%;">Chaos (c)</th>
+                            <th style="width: 14%; text-align: center;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="equipTableBody">
@@ -424,9 +439,13 @@
 <!-- MODALS -->
 <div class="modal-overlay" id="inputModal">
     <div class="modal-box">
-        <h3 style="color: #af6025;">Paste Text dari PoE Trade</h3>
-        <p style="font-size: 0.8em; color: #a38d6d; margin-top: -10px;">Paste mentah hasil copy item kamu. Nama & mata uang akan dibaca otomatis.</p>
-        <textarea id="rawItemInput" rows="10" placeholder="Paste data item di sini..."></textarea>
+        <h3 style="color: #af6025;">Tambah Item Baru</h3>
+        
+        <label style="font-size: 0.85em; color: #a38d6d; display: block; margin-bottom: 4px;">Link URL Trade (Opsional):</label>
+        <input type="text" id="itemUrlInput" placeholder="https://www.pathofexile.com/trade/search/..." style="margin-bottom: 12px;">
+
+        <label style="font-size: 0.85em; color: #a38d6d; display: block; margin-bottom: 4px;">Paste Text dari PoE Trade / Item Stats:</label>
+        <textarea id="rawItemInput" rows="7" placeholder="Paste data mentah item di sini..."></textarea>
         
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
             <button class="btn-reset" style="margin: 0; width: auto; background: #333;" onclick="closeInputModal()">Batal</button>
@@ -439,6 +458,12 @@
     <div class="modal-box" style="max-width: 550px;">
         <h3 style="color: #af6025; margin-bottom: 5px;" id="detailItemTitle">Detail Item</h3>
         <div class="item-detail-content" id="detailItemText"></div>
+        
+        <div style="margin-top: 12px;">
+            <label style="font-size: 0.8em; color: #a38d6d;">Link URL Item:</label>
+            <input type="text" id="detailItemUrlInput" placeholder="Link trade..." oninput="updateLinkFromModal()">
+        </div>
+
         <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
             <button class="btn-action" onclick="closeDetailModal()">Tutup</button>
         </div>
@@ -470,7 +495,7 @@
 </div>
 
 <script>
-    let currentDivinePrice = 150; // Fallback default rate
+    let currentDivinePrice = 150; 
 
     // --- POE.NINJA API FETCH ---
     async function fetchMarketRates() {
@@ -484,20 +509,13 @@
             const data = await response.json();
             const lines = data.lines;
 
-            // Update Divine Price
             const divineData = lines.find(item => item.currencyTypeName === 'Divine Orb');
             if (divineData) {
                 currentDivinePrice = Math.round(divineData.chaosEquivalent);
                 document.getElementById('divineRateDisplay').innerText = `1 Div = ${currentDivinePrice} c`;
             }
 
-            // Update Lifeforce Ratios
-            const lfMap = {
-                1: 'Wild Lifeforce',
-                2: 'Vivid Lifeforce',
-                3: 'Primal Lifeforce',
-                4: 'Sacred Lifeforce'
-            };
+            const lfMap = { 1: 'Wild Lifeforce', 2: 'Vivid Lifeforce', 3: 'Primal Lifeforce', 4: 'Sacred Lifeforce' };
 
             for (let i = 1; i <= 4; i++) {
                 const lfItem = lines.find(item => item.currencyTypeName === lfMap[i]);
@@ -507,7 +525,6 @@
                     hitungLifeforce(i);
                 }
             }
-
             hitungTotalEquip();
         } catch (error) {
             console.error("Gagal sync poe.ninja:", error);
@@ -515,7 +532,7 @@
         }
     }
 
-    // --- NAVIGASI TAB ---
+    // --- TAB NAVIGATION ---
     function switchTab(tabId, btnElement) {
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -608,6 +625,7 @@
     // --- TAB 2: EQUIPMENT LOGIC ---
     let bookmarks = {}; 
     let activeBookmarkId = "default";
+    let activeDetailItemId = null;
 
     function initBookmarks() {
         const savedBookmarks = localStorage.getItem('poe_bookmarks');
@@ -676,18 +694,34 @@
         }
     }
 
-    function openInputModal() { document.getElementById('rawItemInput').value = ''; document.getElementById('inputModal').style.display = 'flex'; }
+    function openInputModal() { 
+        document.getElementById('rawItemInput').value = ''; 
+        document.getElementById('itemUrlInput').value = '';
+        document.getElementById('inputModal').style.display = 'flex'; 
+    }
     function closeInputModal() { document.getElementById('inputModal').style.display = 'none'; }
     
     function openDetailModal(itemId) {
+        activeDetailItemId = itemId;
         const item = bookmarks[activeBookmarkId]?.items.find(i => i.id === itemId);
         if (item) {
             document.getElementById('detailItemTitle').innerText = item.name;
             document.getElementById('detailItemText').innerText = item.fullStats;
+            document.getElementById('detailItemUrlInput').value = item.url || '';
             document.getElementById('detailModal').style.display = 'flex';
         }
     }
     function closeDetailModal() { document.getElementById('detailModal').style.display = 'none'; }
+
+    function updateLinkFromModal() {
+        if (!activeDetailItemId) return;
+        const item = bookmarks[activeBookmarkId]?.items.find(i => i.id === activeDetailItemId);
+        if (item) {
+            item.url = document.getElementById('detailItemUrlInput').value.trim();
+            saveBookmarksToStorage();
+            renderEquipTable();
+        }
+    }
 
     function openTotalModal() {
         const items = bookmarks[activeBookmarkId]?.items || [];
@@ -706,13 +740,21 @@
 
     function addItemFromText() {
         const text = document.getElementById('rawItemInput').value.trim();
-        if (!text) return;
+        let manualUrl = document.getElementById('itemUrlInput').value.trim();
+        
+        if (!text && !manualUrl) return;
+
+        // Auto Extract Link dari Text jika ada
+        const extractedUrlMatch = text.match(/https?:\/\/[^\s]+/);
+        if (extractedUrlMatch && !manualUrl) {
+            manualUrl = extractedUrlMatch[0];
+        }
 
         const headerBlock = text.split(/--------/)[0] || text;
         const lines = headerBlock.split('\n').map(l => l.trim()).filter(l => l.length > 0);
         
-        let nameLines = lines.filter(line => !line.startsWith("Item Class:") && !line.startsWith("Rarity:"));
-        let fullName = nameLines.join(" ") || "Unknown Item";
+        let nameLines = lines.filter(line => !line.startsWith("Item Class:") && !line.startsWith("Rarity:") && !line.startsWith("http"));
+        let fullName = nameLines.join(" ") || (manualUrl ? "Item Link" : "Unknown Item");
 
         let divinePrice = 0, chaosPrice = 0;
         const priceMatch = text.match(/~b\/o\s+(\d+(?:\.\d+)?)\s+(chaos|divine)/i);
@@ -723,7 +765,12 @@
         }
 
         bookmarks[activeBookmarkId].items.push({
-            id: Date.now(), name: fullName, divine: divinePrice, chaos: chaosPrice, fullStats: text
+            id: Date.now(), 
+            name: fullName, 
+            divine: divinePrice, 
+            chaos: chaosPrice, 
+            fullStats: text || "Tidak ada detail statistik.",
+            url: manualUrl
         });
 
         saveBookmarksToStorage();
@@ -753,12 +800,18 @@
 
         items.forEach(item => {
             const tr = document.createElement('tr');
+            
+            let linkButton = item.url 
+                ? `<a href="${escapeHtml(item.url)}" target="_blank" class="btn-link">🌐 Link Trade</a>` 
+                : `<span class="btn-link btn-link-empty">Tanpa Link</span>`;
+
             tr.innerHTML = `
                 <td>
                     <div class="item-clickable-name" onclick="openDetailModal(${item.id})">
                         <span>👁️ ${escapeHtml(item.name)}</span>
                     </div>
                 </td>
+                <td>${linkButton}</td>
                 <td><input type="number" value="${item.divine || ''}" placeholder="0 div" step="any" oninput="updateEquipValue(${item.id}, 'divine', this.value)"></td>
                 <td><input type="number" value="${item.chaos || ''}" placeholder="0 c" step="any" oninput="updateEquipValue(${item.id}, 'chaos', this.value)"></td>
                 <td style="text-align: center;"><button class="btn-delete" onclick="deleteEquipItem(${item.id})">Hapus</button></td>
